@@ -281,9 +281,9 @@
             <div class="border-t border-zinc-100 pt-3">
                 <label class="text-xs font-medium text-zinc-700 block mb-1">기기 간 동기화</label>
                 <p id="syncStatus" class="text-[11px] text-zinc-500 mb-2 leading-relaxed">확인 중...</p>
-                <input type="password" id="syncPhraseInput" placeholder="동기화 문자 (10자 이상, 모든 기기에서 동일하게)" class="w-full border border-zinc-200 rounded-md px-2.5 py-1.5 text-xs text-zinc-800 focus:outline-none focus:border-zinc-400 mb-2">
+                <input type="password" id="syncPhraseInput" placeholder="동기화 문자 (8자 이상, 모든 기기에서 동일하게)" class="w-full border border-zinc-200 rounded-md px-2.5 py-1.5 text-xs text-zinc-800 focus:outline-none focus:border-zinc-400 mb-2">
                 <button id="syncLoginBtn" onclick="syncLogin()" class="w-full py-2 rounded-md border border-zinc-200 text-xs font-medium bg-white text-zinc-700 hover:bg-zinc-50 transition">연결하기</button>
-                <button id="syncLogoutBtn" onclick="syncLogout()" class="hidden w-full py-2 rounded-md border border-zinc-200 text-xs font-medium bg-white text-zinc-700 hover:bg-zinc-50 transition">로그아웃</button>
+                <button id="syncLogoutBtn" onclick="syncLogout()" class="hidden w-full py-2 rounded-md border border-zinc-200 text-xs font-medium bg-white text-zinc-700 hover:bg-zinc-50 transition">연결 해제</button>
             </div>
 
             <button onclick="closeModal('settingsModal')" class="w-full py-2 bg-black text-white hover:bg-zinc-800 rounded-md font-medium text-xs transition mt-2">
@@ -355,8 +355,7 @@
 
     <!-- Firebase SDK (compat) -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 
     <script>
         const STORAGE_KEY = 'MISSKEY_MW_V8_THREAD_FIX';
@@ -444,121 +443,131 @@
             }
         }
 
-        /* ================= Firebase 동기화 ================= */
-        // ★ Firebase 콘솔 > 프로젝트 설정 > 내 앱(웹)의 firebaseConfig 값으로 교체하세요.
+        /* ================= Firebase 동기화 (Realtime Database + 방 코드) ================= */
         const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_PROJECT_ID.appspot.com",
-            messagingSenderId: "YOUR_SENDER_ID",
-            appId: "YOUR_APP_ID"
+            databaseURL: "https://misskey-answer-thing-default-rtdb.firebaseio.com"
         };
+        const SYNC_PHRASE_KEY = 'MISSKEY_MW_SYNC_PHRASE';
+        const MIN_PHRASE_LEN = 8;
 
-        let fbAuth = null, fbDb = null, fbUser = null, fbUnsub = null, pushTimer = null;
+        let fbDb = null, roomRef = null, aesKey = null, pushTimer = null, syncConnected = false;
 
-        function syncConfigured() {
-            return firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith('YOUR_');
+        // ---- 암호화 (방 코드로 만든 키로 데이터 전체를 AES-GCM 암호화) ----
+        const toB64 = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
+        const fromB64 = str => Uint8Array.from(atob(str), c => c.charCodeAt(0));
+
+        async function sha256Hex(text) {
+            const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+            return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
         }
 
+        async function deriveAesKey(phrase) {
+            const enc = new TextEncoder();
+            const base = await crypto.subtle.importKey('raw', enc.encode(phrase), 'PBKDF2', false, ['deriveKey']);
+            return crypto.subtle.deriveKey(
+                { name: 'PBKDF2', salt: enc.encode('misskey-mw-salt-v1'), iterations: 150000, hash: 'SHA-256' },
+                base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']
+            );
+        }
+
+        async function encryptText(text) {
+            const iv = crypto.getRandomValues(new Uint8Array(12));
+            const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, aesKey, new TextEncoder().encode(text));
+            const out = new Uint8Array(12 + ct.byteLength);
+            out.set(iv); out.set(new Uint8Array(ct), 12);
+            return toB64(out);
+        }
+
+        async function decryptText(b64) {
+            const raw = fromB64(b64);
+            const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: raw.slice(0, 12) }, aesKey, raw.slice(12));
+            return new TextDecoder().decode(pt);
+        }
+
+        // ---- UI 상태 ----
         function setSyncStatus(text) {
             const el = document.getElementById('syncStatus');
             if (el) el.textContent = text;
-            const inBtn = document.getElementById('syncLoginBtn');
+            ['syncLoginBtn', 'syncPhraseInput'].forEach(id => {
+                const n = document.getElementById(id);
+                if (n) n.classList.toggle('hidden', syncConnected);
+            });
             const outBtn = document.getElementById('syncLogoutBtn');
-            if (inBtn) inBtn.classList.toggle('hidden', !!fbUser || !syncConfigured());
-            const phraseEl = document.getElementById('syncPhraseInput');
-            if (phraseEl) phraseEl.classList.toggle('hidden', !!fbUser || !syncConfigured());
-            if (outBtn) outBtn.classList.toggle('hidden', !fbUser);
+            if (outBtn) outBtn.classList.toggle('hidden', !syncConnected);
         }
 
         function initSync() {
-            if (!syncConfigured() || typeof firebase === 'undefined') {
-                setSyncStatus('Firebase 설정이 아직 입력되지 않았어요 (로컬 저장만 사용 중)');
+            if (typeof firebase === 'undefined') {
+                setSyncStatus('Firebase를 불러오지 못했어요 (이 기기에만 저장됨)');
                 return;
             }
             firebase.initializeApp(firebaseConfig);
-            fbAuth = firebase.auth();
-            fbDb = firebase.firestore();
-            fbAuth.getRedirectResult().catch(e => console.error('redirect error', e));
-            fbAuth.onAuthStateChanged(user => {
-                fbUser = user;
-                if (fbUnsub) { fbUnsub(); fbUnsub = null; }
-                if (user) {
-                    setSyncStatus('동기화 중 (이 기기에서 로그인됨)');
-                    startCloudListener();
-                } else {
-                    setSyncStatus('연결 안 됨 (이 기기에만 저장됨)');
-                }
-            });
-        }
-
-        async function deriveCreds(phrase) {
-            const enc = new TextEncoder();
-            const hex = async (t) => Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', enc.encode(t))))
-                .map(b => b.toString(16).padStart(2, '0')).join('');
-            const idHash = await hex('misskey-mw-id:' + phrase);
-            const pwHash = await hex('misskey-mw-pw:' + phrase);
-            return { email: idHash.slice(0, 40) + '@sync.misskey-mw.app', password: pwHash };
+            fbDb = firebase.database();
+            const saved = localStorage.getItem(SYNC_PHRASE_KEY);
+            if (saved) connectRoom(saved);
+            else setSyncStatus('연결 안 됨 (이 기기에만 저장됨)');
         }
 
         async function syncLogin() {
-            if (!fbAuth) return;
+            if (!fbDb) return;
             const phrase = document.getElementById('syncPhraseInput').value.trim();
-            if (phrase.length < 10) {
-                showToast('동기화 문자는 10자 이상으로 입력하세요.', 'warning');
+            if (phrase.length < MIN_PHRASE_LEN) {
+                showToast(`동기화 문자는 ${MIN_PHRASE_LEN}자 이상으로 입력하세요.`, 'warning');
                 return;
             }
             const btn = document.getElementById('syncLoginBtn');
             btn.disabled = true;
             try {
-                const { email, password } = await deriveCreds(phrase);
-                try {
-                    await fbAuth.signInWithEmailAndPassword(email, password);
-                } catch (e) {
-                    if (e.code === 'auth/user-not-found' || e.code === 'auth/invalid-credential' || e.code === 'auth/invalid-login-credentials') {
-                        await fbAuth.createUserWithEmailAndPassword(email, password);
-                    } else {
-                        throw e;
-                    }
-                }
+                await connectRoom(phrase);
+                localStorage.setItem(SYNC_PHRASE_KEY, phrase);
                 document.getElementById('syncPhraseInput').value = '';
             } catch (e) {
                 console.error(e);
-                showToast('동기화 실패: ' + (e.code || e.message), 'error');
+                showToast('동기화 연결 실패', 'error');
             } finally {
                 btn.disabled = false;
             }
         }
 
         function syncLogout() {
-            if (fbAuth) fbAuth.signOut();
+            if (roomRef) roomRef.off();
+            roomRef = null; aesKey = null; syncConnected = false;
+            localStorage.removeItem(SYNC_PHRASE_KEY);
+            setSyncStatus('연결 안 됨 (이 기기에만 저장됨)');
         }
 
-        function cloudDoc() {
-            return fbDb.collection('users').doc(fbUser.uid);
-        }
+        async function connectRoom(phrase) {
+            if (roomRef) roomRef.off();
+            aesKey = await deriveAesKey(phrase);
+            const roomId = await sha256Hex('misskey-mw-room:' + phrase);
+            roomRef = fbDb.ref('syncRooms/' + roomId);
+            syncConnected = true;
+            setSyncStatus('동기화 중');
 
-        function startCloudListener() {
-            fbUnsub = cloudDoc().onSnapshot(snap => {
-                if (!snap.exists) {
-                    // 클라우드에 데이터가 없으면 현재 기기 데이터를 올림
-                    pushToCloud(null, true);
+            roomRef.on('value', async snap => {
+                const remote = snap.val();
+                if (!remote || !remote.blob) {
+                    pushToCloud(null, true);      // 방이 비어 있으면 현재 기기 데이터를 올림
                     return;
                 }
-                const remote = snap.data();
-                if ((remote.updatedAt || 0) > (state.updatedAt || 0)) {
-                    applyRemote(remote);
-                } else if ((remote.updatedAt || 0) < (state.updatedAt || 0) && !snap.metadata.hasPendingWrites) {
+                const remoteAt = remote.updatedAt || 0;
+                if (remoteAt > (state.updatedAt || 0)) {
+                    try {
+                        applyRemote(JSON.parse(await decryptText(remote.blob)), remoteAt);
+                    } catch (e) {
+                        console.error('decrypt error', e);
+                        setSyncStatus('동기화 오류: 데이터를 해석하지 못했어요');
+                    }
+                } else if (remoteAt < (state.updatedAt || 0)) {
                     pushToCloud(null, true);
                 }
             }, err => {
                 console.error('sync error', err);
-                setSyncStatus('동기화 오류: ' + err.code);
+                setSyncStatus('동기화 오류: ' + (err.code || err.message));
             });
         }
 
-        function applyRemote(remote) {
+        function applyRemote(remote, remoteAt) {
             const prevActive = state.activeAccountId;
             state.accounts = remote.accounts || [];
             state.activeAccountId = remote.activeAccountId || state.accounts[0]?.id || null;
@@ -566,7 +575,7 @@
             state.hiddenNoteIds = remote.hiddenNoteIds || [];
             state.fontSize = remote.fontSize || '14px';
             if (typeof remote.threadGrouping === 'boolean') state.filters.threadGrouping = remote.threadGrouping;
-            state.updatedAt = remote.updatedAt || Date.now();
+            state.updatedAt = remoteAt || Date.now();
             saveLocalState(true);          // 되돌려 올리지 않도록 동기화 생략
             applyFontSize(state.fontSize);
             renderAll();
@@ -576,9 +585,9 @@
         }
 
         function pushToCloud(payload, immediate) {
-            if (!fbUser || !fbDb) return;
+            if (!roomRef || !aesKey) return;
             clearTimeout(pushTimer);
-            const run = () => {
+            const run = async () => {
                 const data = payload || {
                     updatedAt: state.updatedAt,
                     accounts: state.accounts,
@@ -588,7 +597,12 @@
                     fontSize: state.fontSize,
                     threadGrouping: state.filters.threadGrouping
                 };
-                cloudDoc().set(data).catch(e => console.error('push error', e));
+                try {
+                    const blob = await encryptText(JSON.stringify(data));
+                    await roomRef.set({ updatedAt: data.updatedAt || Date.now(), blob });
+                } catch (e) {
+                    console.error('push error', e);
+                }
             };
             if (immediate) run(); else pushTimer = setTimeout(run, 800);
         }
