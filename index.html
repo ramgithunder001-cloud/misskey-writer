@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="theme-color" content="#ffffff">
+    <meta name="theme-color" content="#F4F4F4">
     <meta name="apple-mobile-web-app-title" content="MW">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="icon-192.png">
@@ -107,9 +107,99 @@
         body {
             padding-bottom: env(safe-area-inset-bottom, 0px);
         }
+
+        /* ===== 종이 노트 테마 ===== */
+        :root {
+            --paper: #F4F4F4;
+            --paper-card: #FCFCFB;
+            --paper-line: #E1DFDA;
+            --grain: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.30  0 0 0 0 0.27  0 0 0 0 0.22  0 0 0 0.075 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url%28%23n%29'/%3E%3C/svg%3E"), url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='600'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.012' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.45  0 0 0 0 0.40  0 0 0 0 0.32  0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url%28%23m%29'/%3E%3C/svg%3E");
+        }
+        html, body { background-color: var(--paper); }
+        body { background-image: var(--grain); }
+
+        /* 패널은 투명하게 두어 종이 질감이 비치게 */
+        body > header,
+        body > div.flex-1,
+        #sideNotificationPanel,
+        #mainWorkspacePanel,
+        #sideNotificationPanel > div,
+        #mainWorkspacePanel > div:not(#threadVisualizerContainer):not(:last-child) {
+            background-color: transparent !important;
+        }
+        body > header, #sideNotificationPanel, #sideNotificationPanel > div,
+        #mainWorkspacePanel > div { border-color: var(--paper-line); }
+
+        /* 하단 작성창: 한 장 올려둔 메모지 느낌 */
+        #mainWorkspacePanel > div:last-child {
+            background-color: var(--paper-card) !important;
+            background-image: var(--grain);
+            box-shadow: 0 -2px 8px rgba(60, 50, 30, 0.07);
+        }
+
+        /* 멘션 카드: 겹쳐 놓은 종이 */
+        .mention-card {
+            background-color: var(--paper-card);
+            background-image: var(--grain);
+            border: 1px solid var(--paper-line);
+            border-radius: 6px;
+            box-shadow: 0 1px 0 rgba(255,255,255,.9) inset, 0 1px 2px rgba(60, 50, 30, 0.09);
+        }
+        .mention-card:hover { border-color: #b8b4aa; background-color: #ffffff; }
+        .mention-card.selected-card {
+            border-color: #18181b;
+            box-shadow: 0 0 0 1px #18181b, 0 4px 10px rgba(0, 0, 0, 0.10);
+            background-color: #ffffff;
+        }
+
+        /* 모달/입력칸 */
+        #settingsModal > div, #accountModal > div, #lookupModal > div {
+            background-color: var(--paper-card);
+            background-image: var(--grain);
+            border-color: var(--paper-line);
+        }
+        #replyTextInput, #replyExtraParts textarea, #replyCwInput, #feedSearchInput {
+            background-color: #ffffff;
+            background-image: var(--grain);
+            border-color: var(--paper-line);
+            box-shadow: inset 0 1px 2px rgba(60, 50, 30, 0.06);
+        }
+
+        /* 답장함 도장 */
+        .stamp-badge {
+            display: inline-block; padding: 1px 6px; font-size: 10px; font-weight: 700; letter-spacing: .04em;
+            color: #3f3f46; border: 1.5px solid #3f3f46; border-radius: 4px;
+            transform: rotate(-3deg); opacity: .9;
+        }
+
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cfcbc2; }
+
+        /* ===== 카드 미색 / 글자 위계 / 체크 표시 ===== */
+        :root { --paper-cream: #FAF6EA; }
+        .mention-card { background-color: var(--paper-cream); }
+        .mention-card:hover { background-color: #FDFAF1; }
+        .mention-card.selected-card { background-color: #FFFCF4; }
+        .thread-note { background-color: var(--paper-cream); background-image: var(--grain); }
+        .thread-note-current { box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08); background-color: #FFFCF4; }
+
+        .card-name   { font-size: 12px; font-weight: 600; color: #52525b; }
+        .card-handle { font-size: 11px; font-weight: 400; color: #b3afa4; }
+        .card-body   { font-size: 13px; line-height: 1.6; font-weight: 500; color: #18181b; }
+        .mention-tag { color: #a8a498; font-weight: 400; }
+
+        .reply-check {
+            width: 24px; height: 24px; border-radius: 9999px;
+            border: 1.5px solid #cfcabd; background: transparent; color: #cfcabd;
+            font-size: 12px; line-height: 1; font-weight: 700;
+            display: inline-flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: all .15s ease;
+        }
+        .reply-check:hover { border-color: #71717a; color: #71717a; }
+        .reply-check.checked { background: #27272a; border-color: #27272a; color: #ffffff; }
     </style>
 </head>
-<body class="bg-white text-zinc-900 flex flex-col antialiased select-none" style="height:100vh;height:100dvh;">
+<body class="text-zinc-900 flex flex-col antialiased select-none" style="height:100vh;height:100dvh;">
 
     <!-- HEADER BAR -->
     <header class="h-14 bg-white border-b border-zinc-200 px-4 py-2.5 flex items-center justify-between shrink-0 z-30">
@@ -220,13 +310,19 @@
             </div>
 
             <!-- FIXED BOTTOM COMPOSER BOX -->
-            <div class="border-t border-zinc-200 bg-white p-3.5 shrink-0 flex flex-col gap-2.5 shadow-sm">
+            <div class="border-t border-zinc-200 bg-white p-3.5 shrink-0 flex flex-col gap-2.5 shadow-sm max-h-[65%] overflow-y-auto">
                 
                 <div class="flex items-center justify-between text-xs border-b border-zinc-100 pb-2">
                     <div class="flex items-center gap-1.5 truncate">
                         <span class="px-2 py-0.5 bg-zinc-100 text-zinc-700 text-[10px] font-semibold rounded">수신자</span>
                         <span id="replyTargetUserLabel" class="font-medium text-zinc-800 truncate">지정 없음</span>
                     </div>
+                </div>
+
+                <!-- 이어쓰기 중 안내 -->
+                <div id="chainNotice" class="hidden items-center justify-between gap-2 text-[11px] bg-amber-50 border border-amber-200 text-amber-900 rounded-md px-2 py-1">
+                    <span>이어쓰기 중 — 직전에 전송된 노트에 이어서 전송돼요</span>
+                    <button onclick="cancelChain()" class="underline font-medium shrink-0">취소</button>
                 </div>
 
                 <!-- CW Input Field -->
@@ -237,11 +333,18 @@
                 <!-- Main Reply Text Area -->
                 <textarea id="replyTextInput" rows="3" oninput="updateReplyCharCounter()" placeholder="멘션 내용을 작성하세요." class="w-full bg-zinc-50 border border-zinc-200 rounded-md p-2.5 text-xs text-zinc-800 placeholder-zinc-400 focus:outline-none focus:border-zinc-400 focus:bg-white transition resize-none leading-relaxed"></textarea>
 
+                <!-- + 이어쓰기로 추가한 입력칸 -->
+                <div id="replyExtraParts" class="flex flex-col gap-2"></div>
+
                 <!-- Controls & Submit Bar -->
                 <div class="flex flex-wrap items-center justify-between gap-2 pt-0.5">
                     <div class="flex items-center gap-1.5">
                         <button onclick="toggleCwInput()" id="cwToggleBtn" class="px-2.5 py-1 bg-white border border-zinc-200 rounded-md text-zinc-700 hover:bg-zinc-100 text-xs font-medium transition">
                             CW
+                        </button>
+
+                        <button onclick="addReplyPart()" id="addPartBtn" title="이어서 보낼 노트 칸 추가 (앞 노트에 이어 답장으로 연결돼요)" class="px-2.5 py-1 bg-white border border-zinc-200 rounded-md text-zinc-700 hover:bg-zinc-100 text-xs font-medium transition">
+                            + 이어쓰기
                         </button>
 
                         <select id="replyVisibilitySelect" class="bg-white border border-zinc-200 rounded-md text-xs text-zinc-700 px-2 py-1 font-medium focus:outline-none focus:border-zinc-400">
@@ -1003,6 +1106,123 @@
             }
         }
 
+        /* ================= 답장 작성: 자동 멘션 / 이어쓰기 / 자동 분할 ================= */
+        const MAX_NOTE_LEN = 3000;
+        let lastAutoMention = '';     // 자동으로 넣어 둔 맨 앞 멘션 (사용자가 지우거나 바꾸면 건드리지 않음)
+        let chainReplyTo = null;      // 일부만 전송되고 중단됐을 때, 이어서 답장할 직전 노트 ID
+
+        function buildMentionPrefix(note) {
+            if (!note || !note.user) return '';
+            const acc = getActiveAccount();
+            // 내 노트에 답장할 때는 멘션을 붙이지 않음
+            if (acc && note.user.username === acc.user.username && !note.user.host) return '';
+            return '@' + note.user.username + (note.user.host ? '@' + note.user.host : '') + ' ';
+        }
+
+        function applyAutoMention(note) {
+            const ta = document.getElementById('replyTextInput');
+            const prefix = buildMentionPrefix(note);
+            const cur = ta.value;
+            if (cur.trim() === '' || (lastAutoMention && cur === lastAutoMention)) {
+                ta.value = prefix;
+                lastAutoMention = prefix;
+            } else if (lastAutoMention && cur.startsWith(lastAutoMention)) {
+                ta.value = prefix + cur.slice(lastAutoMention.length);
+                lastAutoMention = prefix;
+            } else {
+                lastAutoMention = '';     // 이미 쓰던 글이 있으면 건드리지 않음
+            }
+            updateReplyCharCounter();
+        }
+
+        function getSelectedNote() {
+            if (!state.selectedNoteId) return null;
+            return noteCache.get(state.selectedNoteId) || state.mentions.find(m => m.id === state.selectedNoteId) || null;
+        }
+
+        /* 3000자를 넘으면 문단 → 줄바꿈 → 문장 끝 → 공백 순서로 자연스러운 곳에서 끊음 */
+        function splitForLimit(text, limit = MAX_NOTE_LEN) {
+            const chunks = [];
+            let rest = text.trim();
+            const minCut = Math.floor(limit * 0.5);
+            while (rest.length > limit) {
+                const win = rest.slice(0, limit);
+                let cut = win.lastIndexOf('\n\n');
+                if (cut < minCut) cut = win.lastIndexOf('\n');
+                if (cut < minCut) {
+                    let best = -1;
+                    for (const m of win.matchAll(/[.!?。！？…]["')\]」』]*(\s|$)/g)) best = m.index + m[0].length;
+                    cut = best;
+                }
+                if (cut < minCut) cut = win.lastIndexOf(' ');
+                if (cut < minCut) {
+                    cut = limit;
+                    const code = rest.charCodeAt(cut - 1);
+                    if (code >= 0xD800 && code <= 0xDBFF) cut -= 1;   // 이모지 등이 반으로 잘리지 않게
+                }
+                chunks.push(rest.slice(0, cut).trim());
+                rest = rest.slice(cut).trim();
+            }
+            if (rest) chunks.push(rest);
+            return chunks.filter(Boolean);
+        }
+
+        function getReplyTexts() {
+            const texts = [];
+            const mainVal = document.getElementById('replyTextInput').value;
+            // 자동 입력된 멘션만 남은 상태는 빈 글로 취급
+            if (mainVal.trim() && mainVal.trim() !== lastAutoMention.trim()) texts.push(mainVal.trim());
+            document.querySelectorAll('#replyExtraParts textarea').forEach(t => {
+                if (t.value.trim()) texts.push(t.value.trim());
+            });
+            return texts;
+        }
+
+        function addReplyPart(initialText) {
+            const container = document.getElementById('replyExtraParts');
+            const wrap = document.createElement('div');
+            wrap.className = 'relative';
+            wrap.innerHTML = `
+                <textarea rows="3" oninput="updateReplyCharCounter()" placeholder="이어서 보낼 노트 (앞 노트에 이어 답장으로 연결돼요)" class="w-full bg-zinc-50 border border-zinc-200 rounded-md p-2.5 pr-7 text-xs text-zinc-800 placeholder-zinc-400 focus:outline-none focus:border-zinc-400 focus:bg-white transition resize-none leading-relaxed"></textarea>
+                <button type="button" onclick="removeReplyPart(this)" title="이 칸 삭제" class="absolute top-1.5 right-2 text-zinc-400 hover:text-zinc-700 text-sm leading-none">×</button>
+            `;
+            container.appendChild(wrap);
+            const ta = wrap.querySelector('textarea');
+            if (typeof initialText === 'string') ta.value = initialText;
+            else ta.focus();
+            updateReplyCharCounter();
+        }
+
+        function removeReplyPart(btn) {
+            btn.parentElement.remove();
+            updateReplyCharCounter();
+        }
+
+        function clearExtraParts() {
+            document.getElementById('replyExtraParts').innerHTML = '';
+        }
+
+        function setChainNotice(on) {
+            const n = document.getElementById('chainNotice');
+            if (!n) return;
+            n.classList.toggle('hidden', !on);
+            n.classList.toggle('flex', !!on);
+        }
+
+        function cancelChain() {
+            chainReplyTo = null;
+            setChainNotice(false);
+        }
+
+        function markSelectedReplied() {
+            if (state.selectedNoteId && !state.repliedNoteIds.includes(state.selectedNoteId)) {
+                state.repliedNoteIds.push(state.selectedNoteId);
+                saveLocalState();
+                renderFilters();
+                renderFeed();
+            }
+        }
+
         async function submitReplyNote() {
             const account = getActiveAccount();
             if (!account) {
@@ -1015,53 +1235,80 @@
                 return;
             }
 
-            const text = document.getElementById('replyTextInput').value.trim();
-            const cw = state.replyForm.showCw ? document.getElementById('replyCwInput').value.trim() : "";
-            const visibility = document.getElementById('replyVisibilitySelect').value;
-            const localOnly = document.getElementById('replyLocalOnlyCheck').checked;
-
-            if (!text) {
+            const texts = getReplyTexts();
+            if (texts.length === 0) {
                 showToast("답장 내용을 입력해 주세요.", "warning");
                 return;
             }
 
+            // 각 칸을 3000자 단위로 자동 분할 → 순서대로 이어서 전송
+            const chunks = texts.flatMap(t => splitForLimit(t));
+
+            const cw = state.replyForm.showCw ? document.getElementById('replyCwInput').value.trim() : "";
+            const visibility = document.getElementById('replyVisibilitySelect').value;
+            const localOnly = document.getElementById('replyLocalOnlyCheck').checked;
+            const targetNote = noteCache.get(state.selectedNoteId);
+
             const sendBtn = document.getElementById('sendReplyBtn');
             sendBtn.disabled = true;
 
+            let replyToId = chainReplyTo || state.selectedNoteId;
+            let sent = 0;
+
             try {
-                const targetNote = noteCache.get(state.selectedNoteId);
-                const createPayload = {
-                    i: account.token,
-                    replyId: state.selectedNoteId,
-                    text: text,
-                    cw: cw || undefined,
-                    visibility: visibility,
-                    localOnly: localOnly
-                };
+                for (let i = 0; i < chunks.length; i++) {
+                    const createPayload = {
+                        i: account.token,
+                        replyId: replyToId,
+                        text: chunks[i],
+                        cw: cw || undefined,
+                        visibility: visibility,
+                        localOnly: localOnly
+                    };
 
-                if (visibility === 'specified' && targetNote && targetNote.visibleUserIds && targetNote.visibleUserIds.length > 0) {
-                    createPayload.visibleUserIds = targetNote.visibleUserIds;
+                    if (visibility === 'specified' && targetNote && targetNote.visibleUserIds && targetNote.visibleUserIds.length > 0) {
+                        createPayload.visibleUserIds = targetNote.visibleUserIds;
+                    }
+
+                    const res = await misskeyApiCall(account.instance, 'notes/create', createPayload);
+                    sent++;
+
+                    const createdId = res && res.createdNote && res.createdNote.id;
+                    if (createdId) {
+                        replyToId = createdId;
+                    } else if (i < chunks.length - 1) {
+                        throw new Error("생성된 노트 ID를 받지 못해 다음 노트를 이어 보낼 수 없어요");
+                    }
                 }
 
-                await misskeyApiCall(account.instance, 'notes/create', createPayload);
+                showToast(chunks.length > 1 ? `답장 ${chunks.length}개가 이어서 전송되었습니다.` : "답장이 성공적으로 전송되었습니다.", "success");
 
-                showToast("답장이 성공적으로 전송되었습니다.", "success");
-
-                if (!state.repliedNoteIds.includes(state.selectedNoteId)) {
-                    state.repliedNoteIds.push(state.selectedNoteId);
-                    saveLocalState();
-                    renderFilters();
-                    renderFeed();
-                }
-
+                cancelChain();
+                clearExtraParts();
                 document.getElementById('replyTextInput').value = '';
                 document.getElementById('replyCwInput').value = '';
-                updateReplyCharCounter();
+                lastAutoMention = '';
+                applyAutoMention(getSelectedNote());   // 같은 상대에게 계속 답장할 수 있게 멘션 다시 채움
 
+                markSelectedReplied();
                 fetchThreadApi(state.selectedNoteId);
 
             } catch (err) {
-                showToast(`전송 실패: ${err.message}`, "error");
+                if (sent > 0) {
+                    // 일부만 전송됨 → 남은 내용을 입력칸에 되돌려 두고, 다음 전송은 마지막 전송된 노트에 이어서
+                    const remaining = chunks.slice(sent);
+                    clearExtraParts();
+                    document.getElementById('replyTextInput').value = remaining[0] || '';
+                    lastAutoMention = '';
+                    remaining.slice(1).forEach(t => addReplyPart(t));
+                    chainReplyTo = replyToId;
+                    setChainNotice(true);
+                    markSelectedReplied();
+                    showToast(`${chunks.length}개 중 ${sent}개 전송 후 실패: ${err.message}`, "error");
+                } else {
+                    showToast(`전송 실패: ${err.message}`, "error");
+                }
+                updateReplyCharCounter();
             } finally {
                 sendBtn.disabled = false;
             }
@@ -1279,21 +1526,24 @@
                 const fullHandle = `${m.user.username}@${m.user.host || ''}`;
 
                 return `
-                    <div onclick="selectTargetNote('${m.id}')" class="mention-card p-3 cursor-pointer ${isSelected ? 'selected-card' : ''} ${isReplied ? 'opacity-60' : ''}">
+                    <div onclick="selectTargetNote('${m.id}')" class="mention-card p-3 cursor-pointer ${isSelected ? 'selected-card' : ''} ${isReplied ? 'opacity-70' : ''}">
                         <div class="flex items-start justify-between gap-2 mb-1.5">
                             <div class="flex items-center gap-2 min-w-0">
                                 <img src="${m.user.avatarUrl}" class="w-6 h-6 rounded-full border border-zinc-200 object-cover shrink-0">
                                 <div class="min-w-0">
                                     <div class="flex items-center gap-1.5">
-                                        <span class="text-xs font-semibold truncate text-zinc-900">${escapeHtml(m.user.name)}</span>
-                                        ${isReplied ? `<span class="px-1.5 py-0.5 bg-zinc-900 text-white text-[10px] font-medium rounded shrink-0">✓ 답장함</span>` : ''}
+                                        <span class="card-name truncate">${escapeHtml(m.user.name)}</span>
+                                        
                                         ${count > 1 ? `<span class="px-1.5 py-0.5 bg-zinc-100 text-zinc-700 text-[10px] font-medium rounded shrink-0">타래 ${count}개</span>` : ''}
                                     </div>
-                                    <span class="text-[11px] block truncate text-zinc-500 font-normal">@${escapeHtml(fullHandle)}</span>
+                                    <span class="card-handle block truncate">@${escapeHtml(fullHandle)}</span>
                                 </div>
                             </div>
 
-                            <span class="text-[11px] font-normal shrink-0 text-zinc-400">${formatRelativeTime(m.createdAt)}</span>
+                            <div class="flex items-center gap-1.5 shrink-0">
+                                <span class="text-[11px] font-normal text-zinc-400">${formatRelativeTime(m.createdAt)}</span>
+                                <button type="button" onclick="event.stopPropagation(); toggleRepliedNote('${m.id}')" title="${isReplied ? '답장 체크 해제' : '답장 완료로 체크'}" aria-pressed="${isReplied}" class="reply-check ${isReplied ? 'checked' : ''}">✓</button>
+                            </div>
                         </div>
 
                         ${m.cw ? `
@@ -1302,8 +1552,8 @@
                             </div>
                         ` : ''}
 
-                        <p class="preview-clamp-2 text-xs font-normal leading-relaxed break-words text-zinc-800 mb-2.5">
-                            ${escapeHtml(m.text)}
+                        <p class="preview-clamp-2 card-body break-words mb-2.5">
+                            ${renderNoteText(m.text)}
                         </p>
 
                         <div class="pt-2 border-t border-zinc-100 flex items-center justify-between text-[11px]" onclick="event.stopPropagation()">
@@ -1312,9 +1562,6 @@
                             </button>
 
                             <div class="flex items-center gap-1.5">
-                                <button onclick="toggleRepliedNote('${m.id}')" class="px-2 py-0.5 rounded border ${isReplied ? 'bg-zinc-900 text-white border-zinc-900' : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50'} font-medium transition">
-                                    ${isReplied ? '답장 체크 해제' : '답장 체크'}
-                                </button>
                                 <button onclick="toggleHideNote('${m.id}')" class="px-2 py-0.5 rounded border border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50 font-medium transition">
                                     ${state.hiddenNoteIds.includes(m.id) ? '숨김 해제' : '숨김'}
                                 </button>
@@ -1364,19 +1611,19 @@
 
                 html += `
                     <div class="relative">
-                        <div class="p-3.5 rounded-lg border ${isCurrentTarget ? 'border-zinc-900 bg-white shadow-sm ring-1 ring-zinc-900' : 'border-zinc-200 bg-white'} text-zinc-800 text-xs">
+                        <div class="thread-note p-3.5 rounded-lg border ${isCurrentTarget ? 'thread-note-current border-zinc-900 ring-1 ring-zinc-900' : 'border-zinc-200'} text-zinc-800 text-xs">
                             <div class="flex items-center justify-between mb-2 pb-1.5 border-b border-zinc-100">
                                 <div class="flex items-center gap-2 min-w-0">
                                     <img src="${note.user?.avatarUrl || 'https://placehold.co/80x80/000/fff?text=U'}" class="w-5 h-5 rounded-full border border-zinc-200 object-cover shrink-0">
                                     <span class="font-semibold text-zinc-900 truncate">${escapeHtml(note.user?.name || note.user?.username)}</span>
-                                    <span class="text-[11px] text-zinc-500 font-normal truncate">@${escapeHtml(note.user?.username)}</span>
+                                    <span class="card-handle truncate">@${escapeHtml(note.user?.username)}</span>
                                 </div>
                                 <span class="text-[11px] font-normal text-zinc-400 shrink-0">${formatRelativeTime(note.createdAt)}</span>
                             </div>
 
                             ${note.cw ? `<div class="p-2 mb-2 rounded bg-amber-50 border border-amber-200 text-amber-900 font-medium text-[11px]">CW: ${escapeHtml(note.cw)}</div>` : ''}
 
-                            <p class="text-xs font-normal leading-relaxed whitespace-pre-wrap text-zinc-800">${escapeHtml(note.text || '')}</p>
+                            <p class="card-body whitespace-pre-wrap">${renderNoteText(note.text)}</p>
                         </div>
                     </div>
                 `;
@@ -1400,6 +1647,7 @@
         }
 
         function selectTargetNote(noteId) {
+            if (state.selectedNoteId !== noteId) cancelChain();
             state.selectedNoteId = noteId;
             const found = noteCache.get(noteId) || state.mentions.find(m => m.id === noteId);
 
@@ -1410,6 +1658,8 @@
                 if (visibilitySelect && found.visibility) {
                     visibilitySelect.value = found.visibility;
                 }
+
+                applyAutoMention(found);
             } else {
                 document.getElementById('replyTargetUserLabel').textContent = `Note: ${noteId}`;
             }
@@ -1422,6 +1672,11 @@
         }
 
         function deselectTargetNote() {
+            cancelChain();
+            const ta = document.getElementById('replyTextInput');
+            if (lastAutoMention && ta.value === lastAutoMention) ta.value = '';
+            lastAutoMention = '';
+            updateReplyCharCounter();
             state.selectedNoteId = null;
             state.threadData = { notes: [], loading: false };
             document.getElementById('replyTargetUserLabel').textContent = '지정 없음';
@@ -1534,8 +1789,15 @@
         }
 
         function updateReplyCharCounter() {
-            const count = document.getElementById('replyTextInput').value.length;
-            document.getElementById('replyCharCounter').textContent = `${count} / 3000`;
+            const el = document.getElementById('replyCharCounter');
+            const texts = getReplyTexts();
+            const total = texts.reduce((n, t) => n + t.length, 0);
+            const noteCount = texts.reduce((n, t) => n + splitForLimit(t).length, 0);
+            if (noteCount > 1) {
+                el.textContent = `${total}자 · ${noteCount}개로 나눠 전송`;
+            } else {
+                el.textContent = `${document.getElementById('replyTextInput').value.length} / ${MAX_NOTE_LEN}`;
+            }
         }
 
         function openAccountManager() {
@@ -1609,6 +1871,11 @@
                 toast.classList.add('opacity-0', 'translate-y-2');
                 setTimeout(() => toast.remove(), 200);
             }, 2500);
+        }
+
+        // 본문 속 @아이디는 연한 색으로 감싸 본문이 더 도드라지게
+        function renderNoteText(text) {
+            return escapeHtml(text || '').replace(/(^|[\s(（「])(@[A-Za-z0-9_]+(?:@[A-Za-z0-9._-]*[A-Za-z0-9])?)/g, '$1<span class="mention-tag">$2</span>');
         }
 
         function escapeHtml(str) {
