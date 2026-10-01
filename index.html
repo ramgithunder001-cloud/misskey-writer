@@ -2,13 +2,17 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
     
     <!-- PWA & Address Bar Display Meta Tags -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="theme-color" content="#ffffff">
+    <meta name="apple-mobile-web-app-title" content="MW">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <link rel="icon" type="image/png" href="icon-192.png">
     
     <title>Misskey Mention Writer</title>
 
@@ -91,9 +95,21 @@
             overflow: hidden;
             text-overflow: ellipsis;
         }
+
+        /* 입력창은 항상 선택/입력 가능하게 (iOS Safari 대응) */
+        input, textarea, select {
+            -webkit-user-select: text;
+            user-select: text;
+            font-size: 16px; /* iOS 입력 시 자동 확대 방지 */
+        }
+
+        /* 하단 홈 인디케이터 영역 확보 */
+        body {
+            padding-bottom: env(safe-area-inset-bottom, 0px);
+        }
     </style>
 </head>
-<body class="bg-white text-zinc-900 h-screen flex flex-col antialiased select-none">
+<body class="bg-white text-zinc-900 flex flex-col antialiased select-none" style="height:100vh;height:100dvh;">
 
     <!-- HEADER BAR -->
     <header class="h-14 bg-white border-b border-zinc-200 px-4 py-2.5 flex items-center justify-between shrink-0 z-30">
@@ -124,14 +140,14 @@
     </header>
 
     <!-- MAIN WORKSPACE & SIDEBAR CONTAINER -->
-    <div class="flex-1 flex overflow-hidden relative bg-white">
+    <div class="flex-1 min-h-0 flex overflow-hidden relative bg-white">
 
         <!-- SIDEBAR: NOTIFICATION & MENTION LIST -->
         <aside id="sideNotificationPanel" class="w-full md:w-80 lg:w-96 border-r border-zinc-200 flex flex-col h-full bg-white shrink-0 z-10 transition-all duration-200">
             
             <!-- Category Filter Header -->
-            <div class="p-2.5 border-b border-zinc-200 bg-zinc-50/50 flex items-center justify-between gap-1.5 shrink-0">
-                <div class="flex items-center gap-1">
+            <div class="p-2.5 border-b border-zinc-200 bg-zinc-50/50 flex flex-wrap items-center justify-between gap-1.5 shrink-0">
+                <div class="flex flex-wrap items-center gap-1">
                     <button onclick="setCategoryFilter('all')" id="filterTab-all" class="px-2.5 py-1 text-xs font-medium rounded-md bg-black text-white transition">
                         전체 <span id="countBadge-all" class="ml-0.5 text-[10px] opacity-80">0</span>
                     </button>
@@ -140,6 +156,9 @@
                     </button>
                     <button onclick="setCategoryFilter('hidden')" id="filterTab-hidden" class="px-2.5 py-1 text-xs font-medium rounded-md bg-white border border-zinc-200 text-zinc-600 hover:bg-zinc-100 transition">
                         숨김 <span id="countBadge-hidden" class="ml-0.5 text-[10px] opacity-80">0</span>
+                    </button>
+                    <button onclick="setCategoryFilter('unreplied')" id="filterTab-unreplied" class="px-2.5 py-1 text-xs font-medium rounded-md bg-white border border-zinc-200 text-zinc-600 hover:bg-zinc-100 transition">
+                        미답장 <span id="countBadge-unreplied" class="ml-0.5 text-[10px] opacity-80">0</span>
                     </button>
                 </div>
 
@@ -196,7 +215,7 @@
             </div>
 
             <!-- Conversation Thread Scroll Area -->
-            <div id="threadVisualizerContainer" class="flex-1 overflow-y-auto p-4 space-y-3 bg-zinc-50/30">
+            <div id="threadVisualizerContainer" class="flex-1 min-h-0 overflow-y-auto p-4 space-y-3 bg-zinc-50/30">
                 <!-- Thread messages rendered here chronologically -->
             </div>
 
@@ -366,6 +385,7 @@
             mentions: [],          // Raw loaded mention items
             designatedUsers: [],
             hiddenNoteIds: [],
+            repliedNoteIds: [],    // 답장 완료 체크한 멘션 ID
             selectedNoteId: null,
             threadData: { notes: [], loading: false },
             filters: { category: 'all', searchQuery: '', threadGrouping: true },
@@ -401,7 +421,9 @@
             }, 30000);
 
             renderAll();
+            fitViewport();
             initSync();
+            registerServiceWorker();
         };
 
         function loadLocalState() {
@@ -413,6 +435,7 @@
                     state.activeAccountId = parsed.activeAccountId || null;
                     state.designatedUsers = parsed.designatedUsers || [];
                     state.hiddenNoteIds = parsed.hiddenNoteIds || [];
+                    state.repliedNoteIds = parsed.repliedNoteIds || [];
                     state.fontSize = parsed.fontSize || '14px';
                     state.updatedAt = parsed.updatedAt || 0;
                     if (typeof parsed.threadGrouping === 'boolean') {
@@ -424,33 +447,65 @@
             }
         }
 
+        function buildLocalPayload() {
+            return {
+                updatedAt: state.updatedAt,
+                accounts: state.accounts,
+                activeAccountId: state.activeAccountId,
+                designatedUsers: state.designatedUsers,
+                hiddenNoteIds: state.hiddenNoteIds,
+                repliedNoteIds: state.repliedNoteIds,
+                fontSize: state.fontSize,
+                threadGrouping: state.filters.threadGrouping
+            };
+        }
+
         function saveLocalState(skipSync) {
             try {
-                if (!skipSync) state.updatedAt = Date.now();
-                const payload = {
-                    updatedAt: state.updatedAt,
-                    accounts: state.accounts,
-                    activeAccountId: state.activeAccountId,
-                    designatedUsers: state.designatedUsers,
-                    hiddenNoteIds: state.hiddenNoteIds,
-                    fontSize: state.fontSize,
-                    threadGrouping: state.filters.threadGrouping
-                };
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-                if (!skipSync) pushToCloud(payload);
+                if (state.repliedNoteIds.length > 3000) state.repliedNoteIds = state.repliedNoteIds.slice(-3000);
+                if (state.hiddenNoteIds.length > 3000) state.hiddenNoteIds = state.hiddenNoteIds.slice(-3000);
+                if (!skipSync) state.updatedAt = nowMs();
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(buildLocalPayload()));
+                if (!skipSync) pushToCloud();
             } catch (e) {
                 console.error("Local save error:", e);
             }
         }
 
+        /* ================= 모바일 화면 높이 보정 ================= */
+        function fitViewport() {
+            const vv = window.visualViewport;
+            const h = vv ? vv.height : window.innerHeight;
+            document.body.style.height = h + 'px';
+            document.body.style.transform = vv ? `translateY(${vv.offsetTop}px)` : '';
+        }
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', fitViewport);
+            window.visualViewport.addEventListener('scroll', fitViewport);
+        }
+        window.addEventListener('resize', fitViewport);
+        window.addEventListener('orientationchange', () => setTimeout(fitViewport, 200));
+
+        function registerServiceWorker() {
+            if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+                navigator.serviceWorker.register('sw.js').catch(e => console.warn('SW 등록 실패', e));
+            }
+        }
+
         /* ================= Firebase 동기화 (Realtime Database + 방 코드) ================= */
+        // 동기화 대상: 로그인된 계정, 지정 사용자, 숨김 목록, 답장 체크 목록
+        // (글자 크기, 선택된 계정, 타래묶기 설정은 기기별로 따로 유지)
         const firebaseConfig = {
             databaseURL: "https://misskey-answer-thing-default-rtdb.firebaseio.com"
         };
         const SYNC_PHRASE_KEY = 'MISSKEY_MW_SYNC_PHRASE';
+        const SYNC_JOINED_KEY = 'MISSKEY_MW_SYNC_JOINED';
         const MIN_PHRASE_LEN = 8;
 
-        let fbDb = null, roomRef = null, aesKey = null, pushTimer = null, syncConnected = false;
+        let fbDb = null, roomRef = null, offsetRef = null, aesKey = null;
+        let pushTimer = null, syncConnected = false, firstSync = false, serverOffset = 0, currentRoomId = null;
+
+        function nowMs() { return Date.now() + serverOffset; }
 
         // ---- 암호화 (방 코드로 만든 키로 데이터 전체를 AES-GCM 암호화) ----
         const toB64 = buf => {
@@ -501,6 +556,14 @@
             if (outBtn) outBtn.classList.toggle('hidden', !syncConnected);
         }
 
+        function showSyncError(e) {
+            const code = (e && (e.code || e.message)) || 'unknown';
+            let hint = '';
+            if (String(code).includes('PERMISSION_DENIED')) hint = ' — Firebase Realtime Database 규칙에서 syncRooms 읽기/쓰기가 막혀 있어요';
+            setSyncStatus('동기화 오류: ' + code + hint);
+            showToast('동기화 오류: ' + code, 'error');
+        }
+
         function initSync() {
             if (typeof firebase === 'undefined') {
                 setSyncStatus('Firebase를 불러오지 못했어요 (이 기기에만 저장됨)');
@@ -509,12 +572,15 @@
             firebase.initializeApp(firebaseConfig);
             fbDb = firebase.database();
             const saved = localStorage.getItem(SYNC_PHRASE_KEY);
-            if (saved) connectRoom(saved);
-            else setSyncStatus('연결 안 됨 (이 기기에만 저장됨)');
+            if (saved) {
+                connectRoom(saved).catch(showSyncError);
+            } else {
+                setSyncStatus('연결 안 됨 (이 기기에만 저장됨)');
+            }
         }
 
         async function syncLogin() {
-            if (!fbDb) return;
+            if (!fbDb) { showToast('Firebase가 아직 준비되지 않았어요.', 'error'); return; }
             const phrase = document.getElementById('syncPhraseInput').value.trim();
             if (phrase.length < MIN_PHRASE_LEN) {
                 showToast(`동기화 문자는 ${MIN_PHRASE_LEN}자 이상으로 입력하세요.`, 'warning');
@@ -528,7 +594,7 @@
                 document.getElementById('syncPhraseInput').value = '';
             } catch (e) {
                 console.error(e);
-                showToast('동기화 연결 실패', 'error');
+                showSyncError(e);
             } finally {
                 btn.disabled = false;
             }
@@ -536,84 +602,143 @@
 
         function syncLogout() {
             if (roomRef) roomRef.off();
-            roomRef = null; aesKey = null; syncConnected = false;
+            if (offsetRef) offsetRef.off();
+            roomRef = null; offsetRef = null; aesKey = null; syncConnected = false; currentRoomId = null;
             localStorage.removeItem(SYNC_PHRASE_KEY);
+            localStorage.removeItem(SYNC_JOINED_KEY);   // 다시 연결하면 양쪽 데이터를 합쳐요
             setSyncStatus('연결 안 됨 (이 기기에만 저장됨)');
         }
 
         async function connectRoom(phrase) {
             if (roomRef) roomRef.off();
+            if (offsetRef) offsetRef.off();
             aesKey = await deriveAesKey(phrase);
-            const roomId = await sha256Hex('misskey-mw-room:' + phrase);
-            roomRef = fbDb.ref('syncRooms/' + roomId);
-            syncConnected = true;
-            setSyncStatus('동기화 중');
+            currentRoomId = await sha256Hex('misskey-mw-room:' + phrase);
 
-            roomRef.on('value', async snap => {
-                const remote = snap.val();
-                if (!remote || !remote.blob) {
-                    pushToCloud(null, true);      // 방이 비어 있으면 현재 기기 데이터를 올림
-                    return;
-                }
-                const remoteAt = remote.updatedAt || 0;
-                if (remoteAt > (state.updatedAt || 0)) {
-                    try {
-                        applyRemote(JSON.parse(await decryptText(remote.blob)), remoteAt);
-                        setSyncStatus('동기화됨 · ' + new Date().toLocaleTimeString('ko-KR'));
-                    } catch (e) {
-                        console.error('decrypt error', e);
-                        setSyncStatus('동기화 오류: 데이터를 해석하지 못했어요');
-                    }
-                } else if (remoteAt < (state.updatedAt || 0)) {
-                    pushToCloud(null, true);
-                }
-            }, err => {
+            // 기기 시계 차이로 최신 판정이 꼬이지 않도록 서버 시각 보정
+            offsetRef = fbDb.ref('.info/serverTimeOffset');
+            offsetRef.on('value', snap => { serverOffset = Number(snap.val()) || 0; });
+
+            roomRef = fbDb.ref('syncRooms/' + currentRoomId);
+            syncConnected = true;
+            // 이 방에 처음 연결하는 기기면, 기존 데이터를 버리지 않고 양쪽을 합침
+            firstSync = localStorage.getItem(SYNC_JOINED_KEY) !== currentRoomId;
+            setSyncStatus('동기화 중...');
+
+            roomRef.on('value', handleRoomSnapshot, err => {
                 console.error('sync error', err);
                 showSyncError(err);
             });
         }
 
-        function showSyncError(e) {
-            const code = e && (e.code || e.message) || 'unknown';
-            let hint = '';
-            if (String(code).includes('PERMISSION_DENIED')) hint = ' — Firebase Realtime Database 규칙에서 syncRooms 읽기/쓰기가 막혀 있어요';
-            setSyncStatus('동기화 오류: ' + code + hint);
-            showToast('동기화 오류: ' + code, 'error');
+        function uniq(arr) { return Array.from(new Set(arr)); }
+        function accountKey(a) {
+            return ((a.instance || '').replace(/\/+$/, '').toLowerCase()) + '|' + ((a.user && a.user.username) || '').toLowerCase();
         }
 
-        function applyRemote(remote, remoteAt) {
-            const prevActive = state.activeAccountId;
-            state.accounts = remote.accounts || [];
-            state.activeAccountId = remote.activeAccountId || state.accounts[0]?.id || null;
-            state.designatedUsers = remote.designatedUsers || [];
-            state.hiddenNoteIds = remote.hiddenNoteIds || [];
-            state.fontSize = remote.fontSize || '14px';
-            if (typeof remote.threadGrouping === 'boolean') state.filters.threadGrouping = remote.threadGrouping;
-            state.updatedAt = remoteAt || Date.now();
-            saveLocalState(true);          // 되돌려 올리지 않도록 동기화 생략
-            applyFontSize(state.fontSize);
+        async function handleRoomSnapshot(snap) {
+            const remote = snap.val();
+
+            // 방이 비어 있음 → 이 기기 데이터를 올림
+            if (!remote || !remote.blob) {
+                if (!state.updatedAt) { state.updatedAt = nowMs(); saveLocalState(true); }
+                localStorage.setItem(SYNC_JOINED_KEY, currentRoomId);
+                firstSync = false;
+                pushToCloud(null, true);
+                return;
+            }
+
+            let remoteData;
+            try {
+                remoteData = JSON.parse(await decryptText(remote.blob));
+            } catch (e) {
+                console.error('decrypt error', e);
+                setSyncStatus('동기화 오류: 데이터를 해석하지 못했어요');
+                return;
+            }
+            const remoteAt = remote.updatedAt || remoteData.updatedAt || 0;
+
+            if (firstSync) {
+                firstSync = false;
+                localStorage.setItem(SYNC_JOINED_KEY, currentRoomId);
+                mergeFirstSync(remoteData);
+                setSyncStatus('동기화됨 · ' + new Date().toLocaleTimeString('ko-KR'));
+                return;
+            }
+
+            if (remoteAt > (state.updatedAt || 0)) {
+                applyRemote(remoteData, remoteAt);
+                setSyncStatus('동기화됨 · ' + new Date().toLocaleTimeString('ko-KR'));
+            } else if (remoteAt < (state.updatedAt || 0)) {
+                pushToCloud(null, true);
+            } else {
+                setSyncStatus('동기화됨 · ' + new Date().toLocaleTimeString('ko-KR'));
+            }
+        }
+
+        function refreshAfterSync(prevActive) {
+            if (!state.accounts.find(a => a.id === state.activeAccountId)) {
+                state.activeAccountId = state.accounts[0]?.id || null;
+            }
             renderAll();
             if (state.activeAccountId && (state.activeAccountId !== prevActive || state.mentions.length === 0)) {
                 manualFetchMentions();
             }
         }
 
-        function pushToCloud(payload, immediate) {
+        // 처음 연결: 양쪽 데이터를 합쳐서 올림 (기존에 로그인한 계정/지정 사용자가 사라지지 않게)
+        function mergeFirstSync(remoteData) {
+            const prevActive = state.activeAccountId;
+            const localActive = state.accounts.find(a => a.id === state.activeAccountId);
+
+            const map = new Map();
+            [...(remoteData.accounts || []), ...state.accounts].forEach(a => {
+                if (!map.has(accountKey(a))) map.set(accountKey(a), a);
+            });
+            state.accounts = Array.from(map.values());
+            if (localActive) {
+                const same = state.accounts.find(a => accountKey(a) === accountKey(localActive));
+                state.activeAccountId = same ? same.id : null;
+            }
+            state.designatedUsers = uniq([...(remoteData.designatedUsers || []), ...state.designatedUsers]);
+            state.hiddenNoteIds = uniq([...(remoteData.hiddenNoteIds || []), ...state.hiddenNoteIds]);
+            state.repliedNoteIds = uniq([...(remoteData.repliedNoteIds || []), ...state.repliedNoteIds]);
+
+            state.updatedAt = nowMs();
+            saveLocalState(true);
+            pushToCloud(null, true);
+            refreshAfterSync(prevActive);
+        }
+
+        function applyRemote(remote, remoteAt) {
+            const prevActive = state.activeAccountId;
+            state.accounts = remote.accounts || [];
+            state.designatedUsers = remote.designatedUsers || [];
+            state.hiddenNoteIds = remote.hiddenNoteIds || [];
+            state.repliedNoteIds = remote.repliedNoteIds || [];
+            state.updatedAt = remoteAt || nowMs();
+            saveLocalState(true);          // 되돌려 올리지 않도록 동기화 생략
+            refreshAfterSync(prevActive);
+        }
+
+        function buildSyncPayload() {
+            return {
+                updatedAt: state.updatedAt,
+                accounts: state.accounts,
+                designatedUsers: state.designatedUsers,
+                hiddenNoteIds: state.hiddenNoteIds,
+                repliedNoteIds: state.repliedNoteIds
+            };
+        }
+
+        function pushToCloud(_unused, immediate) {
             if (!roomRef || !aesKey) return;
             clearTimeout(pushTimer);
             const run = async () => {
-                const data = payload || {
-                    updatedAt: state.updatedAt,
-                    accounts: state.accounts,
-                    activeAccountId: state.activeAccountId,
-                    designatedUsers: state.designatedUsers,
-                    hiddenNoteIds: state.hiddenNoteIds,
-                    fontSize: state.fontSize,
-                    threadGrouping: state.filters.threadGrouping
-                };
+                const data = buildSyncPayload();
                 try {
                     const blob = await encryptText(JSON.stringify(data));
-                    await roomRef.set({ updatedAt: data.updatedAt || Date.now(), blob });
+                    await roomRef.set({ updatedAt: data.updatedAt || nowMs(), blob });
                     setSyncStatus('동기화됨 · ' + new Date().toLocaleTimeString('ko-KR'));
                 } catch (e) {
                     console.error('push error', e);
@@ -922,6 +1047,13 @@
 
                 showToast("답장이 성공적으로 전송되었습니다.", "success");
 
+                if (!state.repliedNoteIds.includes(state.selectedNoteId)) {
+                    state.repliedNoteIds.push(state.selectedNoteId);
+                    saveLocalState();
+                    renderFilters();
+                    renderFeed();
+                }
+
                 document.getElementById('replyTextInput').value = '';
                 document.getElementById('replyCwInput').value = '';
                 updateReplyCharCounter();
@@ -1044,12 +1176,14 @@
             const allCount = state.mentions.length;
             const designatedCount = state.mentions.filter(m => isDesignatedUser(m.user)).length;
             const hiddenCount = state.hiddenNoteIds.length;
+            const unrepliedCount = state.mentions.filter(m => !state.hiddenNoteIds.includes(m.id) && !state.repliedNoteIds.includes(m.id)).length;
 
             document.getElementById('countBadge-all').textContent = allCount;
             document.getElementById('countBadge-designated').textContent = designatedCount;
             document.getElementById('countBadge-hidden').textContent = hiddenCount;
+            document.getElementById('countBadge-unreplied').textContent = unrepliedCount;
 
-            ['all', 'designated', 'hidden'].forEach(cat => {
+            ['all', 'designated', 'unreplied', 'hidden'].forEach(cat => {
                 const btn = document.getElementById(`filterTab-${cat}`);
                 if (btn) {
                     btn.className = (state.filters.category === cat)
@@ -1116,6 +1250,7 @@
             let baseList = state.mentions.filter(m => {
                 if (state.filters.category === 'designated' && !isDesignatedUser(m.user)) return false;
                 if (state.filters.category === 'hidden' && !state.hiddenNoteIds.includes(m.id)) return false;
+                if (state.filters.category === 'unreplied' && state.repliedNoteIds.includes(m.id)) return false;
                 if (state.filters.category !== 'hidden' && state.hiddenNoteIds.includes(m.id)) return false;
 
                 if (searchQ) {
@@ -1140,16 +1275,18 @@
             container.innerHTML = groupedList.map(({ item: m, count }) => {
                 const isSelected = state.selectedNoteId === m.id;
                 const isDesignated = isDesignatedUser(m.user);
+                const isReplied = state.repliedNoteIds.includes(m.id);
                 const fullHandle = `${m.user.username}@${m.user.host || ''}`;
 
                 return `
-                    <div onclick="selectTargetNote('${m.id}')" class="mention-card p-3 cursor-pointer ${isSelected ? 'selected-card' : ''}">
+                    <div onclick="selectTargetNote('${m.id}')" class="mention-card p-3 cursor-pointer ${isSelected ? 'selected-card' : ''} ${isReplied ? 'opacity-60' : ''}">
                         <div class="flex items-start justify-between gap-2 mb-1.5">
                             <div class="flex items-center gap-2 min-w-0">
                                 <img src="${m.user.avatarUrl}" class="w-6 h-6 rounded-full border border-zinc-200 object-cover shrink-0">
                                 <div class="min-w-0">
                                     <div class="flex items-center gap-1.5">
                                         <span class="text-xs font-semibold truncate text-zinc-900">${escapeHtml(m.user.name)}</span>
+                                        ${isReplied ? `<span class="px-1.5 py-0.5 bg-zinc-900 text-white text-[10px] font-medium rounded shrink-0">✓ 답장함</span>` : ''}
                                         ${count > 1 ? `<span class="px-1.5 py-0.5 bg-zinc-100 text-zinc-700 text-[10px] font-medium rounded shrink-0">타래 ${count}개</span>` : ''}
                                     </div>
                                     <span class="text-[11px] block truncate text-zinc-500 font-normal">@${escapeHtml(fullHandle)}</span>
@@ -1174,9 +1311,14 @@
                                 ${isDesignated ? '지정 해제' : '지정 추가'}
                             </button>
 
-                            <button onclick="toggleHideNote('${m.id}')" class="px-2 py-0.5 rounded border border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50 font-medium transition">
-                                ${state.hiddenNoteIds.includes(m.id) ? '숨김 해제' : '숨김'}
-                            </button>
+                            <div class="flex items-center gap-1.5">
+                                <button onclick="toggleRepliedNote('${m.id}')" class="px-2 py-0.5 rounded border ${isReplied ? 'bg-zinc-900 text-white border-zinc-900' : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50'} font-medium transition">
+                                    ${isReplied ? '답장 체크 해제' : '답장 체크'}
+                                </button>
+                                <button onclick="toggleHideNote('${m.id}')" class="px-2 py-0.5 rounded border border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50 font-medium transition">
+                                    ${state.hiddenNoteIds.includes(m.id) ? '숨김 해제' : '숨김'}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 `;
@@ -1350,6 +1492,17 @@
                 state.hiddenNoteIds = state.hiddenNoteIds.filter(id => id !== noteId);
             } else {
                 state.hiddenNoteIds.push(noteId);
+            }
+            saveLocalState();
+            renderFilters();
+            renderFeed();
+        }
+
+        function toggleRepliedNote(noteId) {
+            if (state.repliedNoteIds.includes(noteId)) {
+                state.repliedNoteIds = state.repliedNoteIds.filter(id => id !== noteId);
+            } else {
+                state.repliedNoteIds.push(noteId);
             }
             saveLocalState();
             renderFilters();
