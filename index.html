@@ -1176,7 +1176,7 @@
             const allCount = state.mentions.length;
             const designatedCount = state.mentions.filter(m => isDesignatedUser(m.user)).length;
             const hiddenCount = state.hiddenNoteIds.length;
-            const unrepliedCount = state.mentions.filter(m => !state.hiddenNoteIds.includes(m.id) && !state.repliedNoteIds.includes(m.id)).length;
+            const unrepliedCount = state.mentions.filter(isUnrepliedTarget).length;
 
             document.getElementById('countBadge-all').textContent = allCount;
             document.getElementById('countBadge-designated').textContent = designatedCount;
@@ -1250,7 +1250,7 @@
             let baseList = state.mentions.filter(m => {
                 if (state.filters.category === 'designated' && !isDesignatedUser(m.user)) return false;
                 if (state.filters.category === 'hidden' && !state.hiddenNoteIds.includes(m.id)) return false;
-                if (state.filters.category === 'unreplied' && state.repliedNoteIds.includes(m.id)) return false;
+                if (state.filters.category === 'unreplied' && !isUnrepliedTarget(m)) return false;
                 if (state.filters.category !== 'hidden' && state.hiddenNoteIds.includes(m.id)) return false;
 
                 if (searchQ) {
@@ -1496,6 +1496,14 @@
             saveLocalState();
             renderFilters();
             renderFeed();
+        }
+
+        // 미답장 대상: 숨김/답장 완료가 아니고, 지정 사용자가 있으면 지정 사용자의 멘션만
+        function isUnrepliedTarget(m) {
+            if (state.hiddenNoteIds.includes(m.id)) return false;
+            if (state.repliedNoteIds.includes(m.id)) return false;
+            if (state.designatedUsers.length > 0 && !isDesignatedUser(m.user)) return false;
+            return true;
         }
 
         function toggleRepliedNote(noteId) {
