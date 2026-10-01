@@ -1,0 +1,1272 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    
+    <!-- PWA & Address Bar Display Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="theme-color" content="#ffffff">
+    
+    <title>Misskey Mention Writer</title>
+
+    <!-- Pretendard Font CDN -->
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Pretendard Variable', 'Pretendard', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        /* Dynamic Root Font Size Control */
+        :root {
+            --app-font-size: 14px;
+        }
+
+        html, body {
+            background-color: #ffffff;
+            color: #18181b;
+            font-family: 'Pretendard Variable', Pretendard, sans-serif;
+            font-size: var(--app-font-size);
+            -webkit-tap-highlight-color: transparent;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        /* Custom Minimal Scrollbar */
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #ffffff;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #d4d4d8;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a1a1aa;
+        }
+
+        /* Mention Card Selection Styles */
+        .mention-card {
+            border: 1px solid #e4e4e7;
+            background-color: #ffffff;
+            border-radius: 8px;
+            transition: all 0.15s ease;
+        }
+
+        .mention-card:hover {
+            border-color: #a1a1aa;
+            background-color: #fafafa;
+        }
+
+        .mention-card.selected-card {
+            border-color: #000000;
+            box-shadow: 0 0 0 1px #000000;
+            background-color: #ffffff;
+        }
+
+        /* Truncate text to max 2 lines */
+        .preview-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+    </style>
+</head>
+<body class="bg-white text-zinc-900 h-screen flex flex-col antialiased select-none">
+
+    <!-- HEADER BAR -->
+    <header class="h-14 bg-white border-b border-zinc-200 px-4 py-2.5 flex items-center justify-between shrink-0 z-30">
+        <div class="flex items-center gap-2">
+            <h1 class="text-xs font-bold tracking-wider text-zinc-900 uppercase">MISSKEY MENTION WRITER</h1>
+        </div>
+
+        <div class="flex items-center gap-1.5">
+            <!-- Settings Modal Button -->
+            <button onclick="openModal('settingsModal')" class="px-2.5 py-1.5 bg-white border border-zinc-200 rounded-md text-zinc-700 hover:bg-zinc-100 text-xs font-medium transition flex items-center gap-1.5">
+                <i data-lucide="settings" class="w-3.5 h-3.5 text-zinc-500"></i>
+                <span class="hidden sm:inline">설정</span>
+            </button>
+
+            <!-- Direct Note Lookup Button -->
+            <button onclick="openModal('lookupModal')" class="px-2.5 py-1.5 bg-white border border-zinc-200 rounded-md text-zinc-700 hover:bg-zinc-100 text-xs font-medium transition flex items-center gap-1.5">
+                <i data-lucide="search" class="w-3.5 h-3.5 text-zinc-500"></i>
+                <span class="hidden sm:inline">조회</span>
+            </button>
+
+            <!-- Active Account Selector Button -->
+            <button onclick="openAccountManager()" id="accountSelectBtn" class="flex items-center gap-1.5 bg-white border border-zinc-200 rounded-md px-2.5 py-1.5 text-xs font-medium text-zinc-800 hover:bg-zinc-100 transition">
+                <i data-lucide="user" class="w-3.5 h-3.5 text-zinc-500"></i>
+                <span id="activeAccountLabel" class="max-w-[110px] truncate">계정 연결</span>
+                <i data-lucide="chevron-down" class="w-3 h-3 text-zinc-400"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- MAIN WORKSPACE & SIDEBAR CONTAINER -->
+    <div class="flex-1 flex overflow-hidden relative bg-white">
+
+        <!-- SIDEBAR: NOTIFICATION & MENTION LIST -->
+        <aside id="sideNotificationPanel" class="w-full md:w-80 lg:w-96 border-r border-zinc-200 flex flex-col h-full bg-white shrink-0 z-10 transition-all duration-200">
+            
+            <!-- Category Filter Header -->
+            <div class="p-2.5 border-b border-zinc-200 bg-zinc-50/50 flex items-center justify-between gap-1.5 shrink-0">
+                <div class="flex items-center gap-1">
+                    <button onclick="setCategoryFilter('all')" id="filterTab-all" class="px-2.5 py-1 text-xs font-medium rounded-md bg-black text-white transition">
+                        전체 <span id="countBadge-all" class="ml-0.5 text-[10px] opacity-80">0</span>
+                    </button>
+                    <button onclick="setCategoryFilter('designated')" id="filterTab-designated" class="px-2.5 py-1 text-xs font-medium rounded-md bg-white border border-zinc-200 text-zinc-600 hover:bg-zinc-100 transition">
+                        지정 <span id="countBadge-designated" class="ml-0.5 text-[10px] opacity-80">0</span>
+                    </button>
+                    <button onclick="setCategoryFilter('hidden')" id="filterTab-hidden" class="px-2.5 py-1 text-xs font-medium rounded-md bg-white border border-zinc-200 text-zinc-600 hover:bg-zinc-100 transition">
+                        숨김 <span id="countBadge-hidden" class="ml-0.5 text-[10px] opacity-80">0</span>
+                    </button>
+                </div>
+
+                <button onclick="toggleThreadGrouping()" id="threadGroupToggleBtn" class="px-2.5 py-1 text-xs font-medium rounded-md bg-black text-white transition" title="한 타래에서 나온 멘션을 하나로 묶어보기">
+                    타래묶기: ON
+                </button>
+            </div>
+
+            <!-- Search and Refresh Controls -->
+            <div class="p-2.5 border-b border-zinc-200 bg-white flex items-center gap-2 shrink-0">
+                <div class="relative flex-1">
+                    <i data-lucide="search" class="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400"></i>
+                    <input type="text" id="feedSearchInput" oninput="handleFeedSearch()" placeholder="검색어 또는 사용자" class="w-full bg-zinc-50 border border-zinc-200 rounded-md pl-8 pr-2.5 py-1 text-xs text-zinc-800 placeholder-zinc-400 focus:outline-none focus:border-zinc-400 focus:bg-white transition">
+                </div>
+                <button onclick="manualFetchMentions()" class="px-2.5 py-1 bg-black text-white hover:bg-zinc-800 rounded-md text-xs font-medium transition shrink-0 flex items-center gap-1">
+                    <i data-lucide="refresh-cw" class="w-3 h-3"></i>
+                </button>
+            </div>
+
+            <!-- Mentions Scrollable Container -->
+            <div id="mentionsFeedContainer" class="flex-1 overflow-y-auto p-2.5 space-y-2">
+                <!-- Mention cards dynamically rendered here -->
+            </div>
+
+            <!-- Load Older Mentions Pagination Button -->
+            <div class="p-2.5 border-t border-zinc-200 bg-white shrink-0">
+                <button onclick="fetchOlderMentions()" id="loadOlderBtn" class="w-full py-2 bg-white border border-zinc-200 rounded-md text-zinc-700 hover:bg-zinc-50 text-xs font-medium transition flex items-center justify-center gap-1.5">
+                    <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-zinc-400"></i>
+                    <span>이전 멘션 불러오기</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- MAIN PRIMARY WORKSPACE: THREAD VIEW & COMPOSER -->
+        <main id="mainWorkspacePanel" class="hidden md:flex flex-1 flex-col h-full bg-white relative overflow-hidden z-20">
+            
+            <!-- Mobile Workspace Top Navigation Bar -->
+            <div class="p-3 border-b border-zinc-200 bg-white flex items-center justify-between shrink-0">
+                <div class="flex items-center gap-2">
+                    <button onclick="switchToMobileList()" class="md:hidden px-2.5 py-1 bg-black text-white text-xs font-medium rounded-md flex items-center gap-1">
+                        <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
+                        <span>알림 목록</span>
+                    </button>
+                    <span class="text-xs font-bold uppercase tracking-wider text-zinc-700 flex items-center gap-1.5">
+                        <i data-lucide="message-square" class="w-3.5 h-3.5 text-zinc-400"></i> 대화 타래
+                    </span>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <button onclick="deselectTargetNote()" class="text-xs text-zinc-500 hover:text-zinc-800 font-medium flex items-center gap-1 transition">
+                        <i data-lucide="x" class="w-3 h-3"></i> 선택 해제
+                    </button>
+                </div>
+            </div>
+
+            <!-- Conversation Thread Scroll Area -->
+            <div id="threadVisualizerContainer" class="flex-1 overflow-y-auto p-4 space-y-3 bg-zinc-50/30">
+                <!-- Thread messages rendered here chronologically -->
+            </div>
+
+            <!-- FIXED BOTTOM COMPOSER BOX -->
+            <div class="border-t border-zinc-200 bg-white p-3.5 shrink-0 flex flex-col gap-2.5 shadow-sm">
+                
+                <div class="flex items-center justify-between text-xs border-b border-zinc-100 pb-2">
+                    <div class="flex items-center gap-1.5 truncate">
+                        <span class="px-2 py-0.5 bg-zinc-100 text-zinc-700 text-[10px] font-semibold rounded">수신자</span>
+                        <span id="replyTargetUserLabel" class="font-medium text-zinc-800 truncate">지정 없음</span>
+                    </div>
+                </div>
+
+                <!-- CW Input Field -->
+                <div id="cwInputContainer" class="hidden">
+                    <input type="text" id="replyCwInput" placeholder="CW 경고 문구 입력" class="w-full bg-zinc-50 border border-zinc-200 rounded-md px-2.5 py-1.5 text-xs text-zinc-800 placeholder-zinc-400 focus:outline-none focus:border-zinc-400 focus:bg-white transition">
+                </div>
+
+                <!-- Main Reply Text Area -->
+                <textarea id="replyTextInput" rows="3" oninput="updateReplyCharCounter()" placeholder="멘션 내용을 작성하세요." class="w-full bg-zinc-50 border border-zinc-200 rounded-md p-2.5 text-xs text-zinc-800 placeholder-zinc-400 focus:outline-none focus:border-zinc-400 focus:bg-white transition resize-none leading-relaxed"></textarea>
+
+                <!-- Controls & Submit Bar -->
+                <div class="flex flex-wrap items-center justify-between gap-2 pt-0.5">
+                    <div class="flex items-center gap-1.5">
+                        <button onclick="toggleCwInput()" id="cwToggleBtn" class="px-2.5 py-1 bg-white border border-zinc-200 rounded-md text-zinc-700 hover:bg-zinc-100 text-xs font-medium transition">
+                            CW
+                        </button>
+
+                        <select id="replyVisibilitySelect" class="bg-white border border-zinc-200 rounded-md text-xs text-zinc-700 px-2 py-1 font-medium focus:outline-none focus:border-zinc-400">
+                            <option value="public">전체 공개</option>
+                            <option value="home">홈 타임라인</option>
+                            <option value="followers">팔로워 전용</option>
+                            <option value="specified">다이렉트 (지정)</option>
+                        </select>
+
+                        <label class="flex items-center gap-1.5 text-zinc-600 text-xs cursor-pointer font-medium ml-1">
+                            <input type="checkbox" id="replyLocalOnlyCheck" class="rounded border-zinc-300 text-black focus:ring-0">
+                            <span>연합 제외</span>
+                        </label>
+                    </div>
+
+                    <div class="flex items-center gap-3">
+                        <span id="replyCharCounter" class="text-xs font-mono font-medium text-zinc-400">0 / 3000</span>
+                        <button onclick="submitReplyNote()" id="sendReplyBtn" class="px-4 py-1.5 bg-black text-white hover:bg-zinc-800 rounded-md font-medium text-xs transition flex items-center gap-1.5 shadow-sm">
+                            <i data-lucide="send" class="w-3.5 h-3.5"></i>
+                            <span>전송</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- SETTINGS MODAL (Font Size Settings) -->
+    <div id="settingsModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white border border-zinc-200 rounded-xl shadow-2xl w-full max-w-sm p-5 flex flex-col gap-4">
+            <div class="flex items-center justify-between border-b border-zinc-100 pb-3">
+                <h3 class="text-xs font-bold text-zinc-900 uppercase">설정</h3>
+                <button onclick="closeModal('settingsModal')" class="text-zinc-400 hover:text-zinc-700 p-1 rounded-md">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <div>
+                <label class="text-xs font-medium text-zinc-700 block mb-2">글자 크기 변경</label>
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="setFontSize('12px')" id="fontSizeBtn-12px" class="py-2 rounded-md border border-zinc-200 text-xs font-medium bg-white text-zinc-700 hover:bg-zinc-50 transition">
+                        작게 (12px)
+                    </button>
+                    <button onclick="setFontSize('14px')" id="fontSizeBtn-14px" class="py-2 rounded-md border border-black text-xs font-medium bg-black text-white transition">
+                        보통 (14px)
+                    </button>
+                    <button onclick="setFontSize('16px')" id="fontSizeBtn-16px" class="py-2 rounded-md border border-zinc-200 text-xs font-medium bg-white text-zinc-700 hover:bg-zinc-50 transition">
+                        크게 (16px)
+                    </button>
+                    <button onclick="setFontSize('18px')" id="fontSizeBtn-18px" class="py-2 rounded-md border border-zinc-200 text-xs font-medium bg-white text-zinc-700 hover:bg-zinc-50 transition">
+                        매우 크게 (18px)
+                    </button>
+                </div>
+            </div>
+
+            <button onclick="closeModal('settingsModal')" class="w-full py-2 bg-black text-white hover:bg-zinc-800 rounded-md font-medium text-xs transition mt-2">
+                확인
+            </button>
+        </div>
+    </div>
+
+    <!-- ACCOUNT MANAGER MODAL -->
+    <div id="accountModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white border border-zinc-200 rounded-xl shadow-2xl w-full max-w-md p-5 flex flex-col gap-4">
+            <div class="flex items-center justify-between border-b border-zinc-100 pb-3">
+                <h3 class="text-xs font-bold text-zinc-900 uppercase">계정 관리</h3>
+                <button onclick="closeModal('accountModal')" class="text-zinc-400 hover:text-zinc-700 p-1 rounded-md">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <div class="space-y-2.5 border-b border-zinc-100 pb-4">
+                <h4 class="text-xs font-bold text-zinc-800">새 계정 등록</h4>
+                <div>
+                    <label class="text-[11px] font-medium text-zinc-600 block mb-1">인스턴스 주소</label>
+                    <input type="text" id="addInstanceInput" placeholder="https://misskey.io" class="w-full border border-zinc-200 rounded-md px-2.5 py-1.5 text-xs text-zinc-800 focus:outline-none focus:border-zinc-400">
+                </div>
+                <div>
+                    <label class="text-[11px] font-medium text-zinc-600 block mb-1">API Access Token (i)</label>
+                    <input type="password" id="addTokenInput" placeholder="토큰 입력" class="w-full border border-zinc-200 rounded-md px-2.5 py-1.5 text-xs text-zinc-800 focus:outline-none focus:border-zinc-400">
+                </div>
+                <button onclick="addNewAccount()" id="addAccountBtn" class="w-full py-2 bg-black text-white hover:bg-zinc-800 rounded-md font-medium text-xs transition flex items-center justify-center gap-1.5 mt-1">
+                    <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                    <span>토큰 검증 및 계정 등록</span>
+                </button>
+            </div>
+
+            <div>
+                <h4 class="text-xs font-bold text-zinc-800 mb-2">등록된 계정 목록</h4>
+                <div id="modalAccountList" class="space-y-1.5 max-h-40 overflow-y-auto">
+                    <!-- Accounts list -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DIRECT LOOKUP MODAL -->
+    <div id="lookupModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white border border-zinc-200 rounded-xl shadow-2xl w-full max-w-md p-5 flex flex-col gap-3">
+            <div class="flex items-center justify-between border-b border-zinc-100 pb-3">
+                <h3 class="text-xs font-bold text-zinc-900 uppercase">노트 직접 조회</h3>
+                <button onclick="closeModal('lookupModal')" class="text-zinc-400 hover:text-zinc-700 p-1 rounded-md">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <p class="text-xs text-zinc-600 leading-relaxed">
+                Misskey 노트 URL 또는 노트 ID를 입력하면 타래를 불러옵니다.
+            </p>
+
+            <input type="text" id="lookupUrlInput" placeholder="노트 URL 또는 Note ID" class="w-full border border-zinc-200 rounded-md px-2.5 py-1.5 text-xs text-zinc-800 focus:outline-none focus:border-zinc-400">
+
+            <button onclick="executeLookupNote()" id="lookupSubmitBtn" class="w-full py-2 bg-black text-white hover:bg-zinc-800 rounded-md font-medium text-xs transition flex items-center justify-center gap-1.5 mt-1">
+                <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                <span>불러오기</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toastContainer" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <script>
+        const STORAGE_KEY = 'MISSKEY_MW_V8_THREAD_FIX';
+
+        let state = {
+            accounts: [],
+            activeAccountId: null,
+            mentions: [],          // Raw loaded mention items
+            designatedUsers: [],
+            hiddenNoteIds: [],
+            selectedNoteId: null,
+            threadData: { notes: [], loading: false },
+            filters: { category: 'all', searchQuery: '', threadGrouping: true },
+            replyForm: { cw: '', showCw: false },
+            fontSize: '14px',
+            mobileView: 'list'    // 'list' | 'workspace'
+        };
+
+        // Cache for all known notes and parent links
+        const noteCache = new Map();
+        const parentCache = new Map();
+
+        window.onload = function() {
+            loadLocalState();
+            applyFontSize(state.fontSize);
+            lucide.createIcons();
+
+            if (state.accounts.length === 0) {
+                openAccountManager();
+            } else {
+                if (!state.activeAccountId && state.accounts.length > 0) {
+                    state.activeAccountId = state.accounts[0].id;
+                }
+                manualFetchMentions();
+            }
+
+            // Background Auto-Refresh (30 seconds)
+            setInterval(() => {
+                if (state.activeAccountId) {
+                    silentFetchMentions();
+                }
+            }, 30000);
+
+            renderAll();
+        };
+
+        function loadLocalState() {
+            try {
+                const saved = localStorage.getItem(STORAGE_KEY);
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    state.accounts = parsed.accounts || [];
+                    state.activeAccountId = parsed.activeAccountId || null;
+                    state.designatedUsers = parsed.designatedUsers || [];
+                    state.hiddenNoteIds = parsed.hiddenNoteIds || [];
+                    state.fontSize = parsed.fontSize || '14px';
+                    if (typeof parsed.threadGrouping === 'boolean') {
+                        state.filters.threadGrouping = parsed.threadGrouping;
+                    }
+                }
+            } catch (e) {
+                console.error("Local load error:", e);
+            }
+        }
+
+        function saveLocalState() {
+            try {
+                const payload = {
+                    accounts: state.accounts,
+                    activeAccountId: state.activeAccountId,
+                    designatedUsers: state.designatedUsers,
+                    hiddenNoteIds: state.hiddenNoteIds,
+                    fontSize: state.fontSize,
+                    threadGrouping: state.filters.threadGrouping
+                };
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+            } catch (e) {
+                console.error("Local save error:", e);
+            }
+        }
+
+        function setFontSize(size) {
+            state.fontSize = size;
+            applyFontSize(size);
+            saveLocalState();
+            updateFontSizeUI();
+        }
+
+        function applyFontSize(size) {
+            document.documentElement.style.setProperty('--app-font-size', size);
+        }
+
+        function updateFontSizeUI() {
+            ['12px', '14px', '16px', '18px'].forEach(sz => {
+                const btn = document.getElementById(`fontSizeBtn-${sz}`);
+                if (btn) {
+                    btn.className = (state.fontSize === sz)
+                        ? 'py-2 rounded-md border border-black text-xs font-medium bg-black text-white transition'
+                        : 'py-2 rounded-md border border-zinc-200 text-xs font-medium bg-white text-zinc-700 hover:bg-zinc-50 transition';
+                }
+            });
+        }
+
+        function getActiveAccount() {
+            return state.accounts.find(a => a.id === state.activeAccountId) || null;
+        }
+
+        async function misskeyApiCall(instanceUrl, endpoint, body = {}) {
+            const cleanUrl = instanceUrl.replace(/\/+$/, '');
+            const targetUrl = `${cleanUrl}/api/${endpoint.replace(/^\//, '')}`;
+            
+            const response = await fetch(targetUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+
+            if (!response.ok) {
+                const errText = await response.text();
+                throw new Error(`API 오류 (${response.status}): ${errText}`);
+            }
+            return await response.json();
+        }
+
+        function cacheNoteHierarchy(rawNote, defaultHost = '') {
+            if (!rawNote || !rawNote.id) return null;
+
+            const parsed = {
+                id: rawNote.id,
+                user: {
+                    name: rawNote.user?.name || rawNote.user?.username || '알 수 없음',
+                    username: rawNote.user?.username || 'unknown',
+                    host: rawNote.user?.host || defaultHost,
+                    avatarUrl: rawNote.user?.avatarUrl || 'https://placehold.co/80x80/000/fff?text=U'
+                },
+                text: rawNote.text || '',
+                cw: rawNote.cw || null,
+                createdAt: rawNote.createdAt,
+                visibility: rawNote.visibility || 'public',
+                visibleUserIds: rawNote.visibleUserIds || [],
+                replyId: rawNote.replyId || null,
+                renoteId: rawNote.renoteId || null
+            };
+
+            noteCache.set(parsed.id, parsed);
+
+            if (rawNote.reply) {
+                parentCache.set(parsed.id, rawNote.reply.id);
+                cacheNoteHierarchy(rawNote.reply, defaultHost);
+            } else if (parsed.replyId) {
+                parentCache.set(parsed.id, parsed.replyId);
+            }
+
+            return parsed;
+        }
+
+        // Recursively find the Root Thread ID of any note
+        function getRootThreadId(noteId) {
+            let currentId = noteId;
+            const visited = new Set();
+
+            while (currentId && !visited.has(currentId)) {
+                visited.add(currentId);
+                const parentId = parentCache.get(currentId);
+                if (!parentId) break;
+                currentId = parentId;
+            }
+
+            return currentId || noteId;
+        }
+
+        function mergeNotes(newParsedNotes) {
+            const existingMap = new Map(state.mentions.map(m => [m.id, m]));
+            newParsedNotes.forEach(n => existingMap.set(n.id, n));
+
+            state.mentions = Array.from(existingMap.values()).sort((a, b) => {
+                return new Date(b.createdAt) - new Date(a.createdAt);
+            });
+        }
+
+        async function fetchMentionsApi(untilId = null) {
+            const account = getActiveAccount();
+            if (!account) return;
+
+            const defaultHost = account.instance.replace(/^https?:\/\//, '');
+            const payload = { i: account.token, limit: 30 };
+            if (untilId) payload.untilId = untilId;
+
+            const result = await misskeyApiCall(account.instance, 'notes/mentions', payload);
+
+            if (Array.isArray(result)) {
+                const parsedList = result.map(raw => cacheNoteHierarchy(raw, defaultHost));
+                mergeNotes(parsedList);
+                renderFeed();
+                renderFilters();
+            }
+        }
+
+        async function manualFetchMentions() {
+            const account = getActiveAccount();
+            if (!account) {
+                showToast("등록된 계정이 없습니다.", "warning");
+                return;
+            }
+            try {
+                await fetchMentionsApi(null);
+                showToast("멘션 목록을 새로고침했습니다.", "success");
+            } catch (err) {
+                showToast(`새로고침 실패: ${err.message}`, "error");
+            }
+        }
+
+        async function fetchOlderMentions() {
+            if (state.mentions.length === 0) return manualFetchMentions();
+
+            const oldestId = state.mentions[state.mentions.length - 1].id;
+            const btn = document.getElementById('loadOlderBtn');
+            btn.disabled = true;
+
+            try {
+                await fetchMentionsApi(oldestId);
+                showToast("이전 멘션을 불러왔습니다.", "success");
+            } catch (err) {
+                showToast(`불러오기 실패: ${err.message}`, "error");
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        async function silentFetchMentions() {
+            const account = getActiveAccount();
+            if (!account) return;
+            try {
+                await fetchMentionsApi(null);
+            } catch (e) {}
+        }
+
+        async function fetchThreadApi(targetNoteId) {
+            const account = getActiveAccount();
+            if (!account) return;
+
+            const defaultHost = account.instance.replace(/^https?:\/\//, '');
+            state.threadData.loading = true;
+            renderThreadVisualizer();
+
+            const fetchedNotesMap = new Map();
+
+            try {
+                // 1. Fetch Target Note
+                const targetNoteRaw = await misskeyApiCall(account.instance, 'notes/show', {
+                    i: account.token,
+                    noteId: targetNoteId
+                });
+
+                const targetNoteParsed = cacheNoteHierarchy(targetNoteRaw, defaultHost);
+                if (targetNoteParsed) fetchedNotesMap.set(targetNoteParsed.id, targetNoteParsed);
+
+                // 2. Fetch Ancestors via notes/conversation
+                let ancestorsRaw = [];
+                try {
+                    ancestorsRaw = await misskeyApiCall(account.instance, 'notes/conversation', {
+                        i: account.token,
+                        noteId: targetNoteId,
+                        limit: 30
+                    });
+                } catch (e) {
+                    ancestorsRaw = [];
+                }
+
+                if (Array.isArray(ancestorsRaw) && ancestorsRaw.length > 0) {
+                    ancestorsRaw.forEach(raw => {
+                        const p = cacheNoteHierarchy(raw, defaultHost);
+                        if (p) fetchedNotesMap.set(p.id, p);
+                    });
+                } else {
+                    // Fallback Ancestor Fetching recursively via replyId
+                    let currParentId = targetNoteParsed?.replyId;
+                    let depth = 0;
+
+                    while (currParentId && depth < 12) {
+                        try {
+                            const parentRaw = await misskeyApiCall(account.instance, 'notes/show', {
+                                i: account.token,
+                                noteId: currParentId
+                            });
+                            const parentParsed = cacheNoteHierarchy(parentRaw, defaultHost);
+                            if (parentParsed) {
+                                fetchedNotesMap.set(parentParsed.id, parentParsed);
+                                currParentId = parentParsed.replyId;
+                            } else {
+                                break;
+                            }
+                        } catch (err) {
+                            break;
+                        }
+                        depth++;
+                    }
+                }
+
+                // 3. Fetch Children Replies
+                try {
+                    const childrenRaw = await misskeyApiCall(account.instance, 'notes/children', {
+                        i: account.token,
+                        noteId: targetNoteId,
+                        limit: 30
+                    });
+                    if (Array.isArray(childrenRaw)) {
+                        childrenRaw.forEach(raw => {
+                            const p = cacheNoteHierarchy(raw, defaultHost);
+                            if (p) fetchedNotesMap.set(p.id, p);
+                        });
+                    }
+                } catch (e) {}
+
+                // 4. Sort All Notes Chronologically (Oldest top -> Newest bottom)
+                const sortedThreadNotes = Array.from(fetchedNotesMap.values()).sort((a, b) => {
+                    return new Date(a.createdAt) - new Date(b.createdAt);
+                });
+
+                state.threadData = {
+                    notes: sortedThreadNotes,
+                    loading: false
+                };
+
+                // Re-render feed to update thread grouping badge count
+                renderFeed();
+                renderThreadVisualizer();
+
+            } catch (err) {
+                state.threadData.loading = false;
+                renderThreadVisualizer();
+                showToast(`타래 불러오기 실패: ${err.message}`, "error");
+            }
+        }
+
+        async function submitReplyNote() {
+            const account = getActiveAccount();
+            if (!account) {
+                showToast("등록된 계정이 없습니다.", "error");
+                return;
+            }
+
+            if (!state.selectedNoteId) {
+                showToast("답장할 대상 멘션을 먼저 선택해 주세요.", "warning");
+                return;
+            }
+
+            const text = document.getElementById('replyTextInput').value.trim();
+            const cw = state.replyForm.showCw ? document.getElementById('replyCwInput').value.trim() : "";
+            const visibility = document.getElementById('replyVisibilitySelect').value;
+            const localOnly = document.getElementById('replyLocalOnlyCheck').checked;
+
+            if (!text) {
+                showToast("답장 내용을 입력해 주세요.", "warning");
+                return;
+            }
+
+            const sendBtn = document.getElementById('sendReplyBtn');
+            sendBtn.disabled = true;
+
+            try {
+                const targetNote = noteCache.get(state.selectedNoteId);
+                const createPayload = {
+                    i: account.token,
+                    replyId: state.selectedNoteId,
+                    text: text,
+                    cw: cw || undefined,
+                    visibility: visibility,
+                    localOnly: localOnly
+                };
+
+                if (visibility === 'specified' && targetNote && targetNote.visibleUserIds && targetNote.visibleUserIds.length > 0) {
+                    createPayload.visibleUserIds = targetNote.visibleUserIds;
+                }
+
+                await misskeyApiCall(account.instance, 'notes/create', createPayload);
+
+                showToast("답장이 성공적으로 전송되었습니다.", "success");
+
+                document.getElementById('replyTextInput').value = '';
+                document.getElementById('replyCwInput').value = '';
+                updateReplyCharCounter();
+
+                fetchThreadApi(state.selectedNoteId);
+
+            } catch (err) {
+                showToast(`전송 실패: ${err.message}`, "error");
+            } finally {
+                sendBtn.disabled = false;
+            }
+        }
+
+        async function addNewAccount() {
+            let instance = document.getElementById('addInstanceInput').value.trim();
+            const token = document.getElementById('addTokenInput').value.trim();
+
+            if (!instance || !token) {
+                showToast("인스턴스 주소와 API 토큰을 입력하세요.", "warning");
+                return;
+            }
+
+            if (!/^https?:\/\//i.test(instance)) {
+                instance = 'https://' + instance;
+            }
+
+            const btn = document.getElementById('addAccountBtn');
+            btn.disabled = true;
+
+            try {
+                const userInfo = await misskeyApiCall(instance, 'i', { i: token });
+
+                if (!userInfo || !userInfo.username) {
+                    throw new Error("올바르지 않은 계정 응답입니다.");
+                }
+
+                const newAcc = {
+                    id: 'acc-' + Date.now(),
+                    instance: instance,
+                    token: token,
+                    user: {
+                        name: userInfo.name || userInfo.username,
+                        username: userInfo.username,
+                        avatarUrl: userInfo.avatarUrl || 'https://placehold.co/80x80/000/fff?text=U'
+                    }
+                };
+
+                state.accounts.push(newAcc);
+                state.activeAccountId = newAcc.id;
+                saveLocalState();
+
+                showToast(`@${userInfo.username} 계정이 등록되었습니다.`, "success");
+                closeModal('accountModal');
+
+                document.getElementById('addInstanceInput').value = '';
+                document.getElementById('addTokenInput').value = '';
+
+                renderAll();
+                manualFetchMentions();
+
+            } catch (err) {
+                showToast(`계정 등록 실패: ${err.message}`, "error");
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        async function executeLookupNote() {
+            const input = document.getElementById('lookupUrlInput').value.trim();
+            const account = getActiveAccount();
+
+            if (!input) {
+                showToast("조회할 URL 또는 Note ID를 입력하세요.", "warning");
+                return;
+            }
+
+            if (!account) {
+                showToast("계정이 필요합니다.", "warning");
+                return;
+            }
+
+            try {
+                let targetNoteId = input;
+                if (input.startsWith('http')) {
+                    if (input.includes('/notes/')) {
+                        targetNoteId = input.split('/notes/')[1].split('/')[0];
+                    }
+                }
+
+                selectTargetNote(targetNoteId);
+                closeModal('lookupModal');
+                showToast("노트를 조회했습니다.", "success");
+            } catch (err) {
+                showToast(`조회 실패: ${err.message}`, "error");
+            }
+        }
+
+        function renderAll() {
+            renderHeader();
+            renderFilters();
+            renderFeed();
+            renderThreadVisualizer();
+            renderModalAccountList();
+            updateFontSizeUI();
+            updateResponsiveViews();
+            lucide.createIcons();
+        }
+
+        function renderHeader() {
+            const acc = getActiveAccount();
+            const label = document.getElementById('activeAccountLabel');
+            if (acc) {
+                label.textContent = `@${acc.user.username}`;
+            } else {
+                label.textContent = '계정 연결';
+            }
+        }
+
+        function renderFilters() {
+            const allCount = state.mentions.length;
+            const designatedCount = state.mentions.filter(m => isDesignatedUser(m.user)).length;
+            const hiddenCount = state.hiddenNoteIds.length;
+
+            document.getElementById('countBadge-all').textContent = allCount;
+            document.getElementById('countBadge-designated').textContent = designatedCount;
+            document.getElementById('countBadge-hidden').textContent = hiddenCount;
+
+            ['all', 'designated', 'hidden'].forEach(cat => {
+                const btn = document.getElementById(`filterTab-${cat}`);
+                if (btn) {
+                    btn.className = (state.filters.category === cat)
+                        ? 'px-2.5 py-1 text-xs font-medium rounded-md bg-black text-white transition'
+                        : 'px-2.5 py-1 text-xs font-medium rounded-md bg-white border border-zinc-200 text-zinc-600 hover:bg-zinc-100 transition';
+                }
+            });
+
+            const toggleBtn = document.getElementById('threadGroupToggleBtn');
+            if (toggleBtn) {
+                toggleBtn.textContent = state.filters.threadGrouping ? '타래묶기: ON' : '타래묶기: OFF';
+                toggleBtn.className = state.filters.threadGrouping
+                    ? 'px-2.5 py-1 text-xs font-medium rounded-md bg-black text-white transition'
+                    : 'px-2.5 py-1 text-xs font-medium rounded-md bg-white border border-zinc-200 text-zinc-600 hover:bg-zinc-100 transition';
+            }
+        }
+
+        function setCategoryFilter(cat) {
+            state.filters.category = cat;
+            renderFilters();
+            renderFeed();
+        }
+
+        function toggleThreadGrouping() {
+            state.filters.threadGrouping = !state.filters.threadGrouping;
+            saveLocalState();
+            renderFilters();
+            renderFeed();
+        }
+
+        /* Group mentions by Root Thread ID */
+        function groupMentionsByThread(mentionsList) {
+            if (!state.filters.threadGrouping) {
+                return mentionsList.map(m => ({ item: m, count: 1 }));
+            }
+
+            const groups = new Map();
+
+            mentionsList.forEach(m => {
+                const rootId = getRootThreadId(m.id);
+                if (!groups.has(rootId)) {
+                    groups.set(rootId, []);
+                }
+                groups.get(rootId).push(m);
+            });
+
+            const result = [];
+            groups.forEach(groupItems => {
+                groupItems.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                result.push({
+                    item: groupItems[0],
+                    count: groupItems.length
+                });
+            });
+
+            result.sort((a, b) => new Date(b.item.createdAt) - new Date(a.item.createdAt));
+            return result;
+        }
+
+        function renderFeed() {
+            const container = document.getElementById('mentionsFeedContainer');
+            const searchQ = state.filters.searchQuery.toLowerCase();
+
+            let baseList = state.mentions.filter(m => {
+                if (state.filters.category === 'designated' && !isDesignatedUser(m.user)) return false;
+                if (state.filters.category === 'hidden' && !state.hiddenNoteIds.includes(m.id)) return false;
+                if (state.filters.category !== 'hidden' && state.hiddenNoteIds.includes(m.id)) return false;
+
+                if (searchQ) {
+                    const matchText = (m.text || '').toLowerCase().includes(searchQ);
+                    const matchUser = (m.user.name || '').toLowerCase().includes(searchQ) || (m.user.username || '').toLowerCase().includes(searchQ);
+                    if (!matchText && !matchUser) return false;
+                }
+                return true;
+            });
+
+            const groupedList = groupMentionsByThread(baseList);
+
+            if (groupedList.length === 0) {
+                container.innerHTML = `
+                    <div class="h-32 flex items-center justify-center text-xs text-zinc-400 font-medium border border-dashed border-zinc-200 rounded-lg p-4 text-center">
+                        수신된 멘션 항목이 없습니다.
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = groupedList.map(({ item: m, count }) => {
+                const isSelected = state.selectedNoteId === m.id;
+                const isDesignated = isDesignatedUser(m.user);
+                const fullHandle = `${m.user.username}@${m.user.host || ''}`;
+
+                return `
+                    <div onclick="selectTargetNote('${m.id}')" class="mention-card p-3 cursor-pointer ${isSelected ? 'selected-card' : ''}">
+                        <div class="flex items-start justify-between gap-2 mb-1.5">
+                            <div class="flex items-center gap-2 min-w-0">
+                                <img src="${m.user.avatarUrl}" class="w-6 h-6 rounded-full border border-zinc-200 object-cover shrink-0">
+                                <div class="min-w-0">
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="text-xs font-semibold truncate text-zinc-900">${escapeHtml(m.user.name)}</span>
+                                        ${count > 1 ? `<span class="px-1.5 py-0.5 bg-zinc-100 text-zinc-700 text-[10px] font-medium rounded shrink-0">타래 ${count}개</span>` : ''}
+                                    </div>
+                                    <span class="text-[11px] block truncate text-zinc-500 font-normal">@${escapeHtml(fullHandle)}</span>
+                                </div>
+                            </div>
+
+                            <span class="text-[11px] font-normal shrink-0 text-zinc-400">${formatRelativeTime(m.createdAt)}</span>
+                        </div>
+
+                        ${m.cw ? `
+                            <div class="mb-2 p-1.5 rounded border border-amber-200 text-[11px] font-medium bg-amber-50 text-amber-900">
+                                CW: ${escapeHtml(m.cw)}
+                            </div>
+                        ` : ''}
+
+                        <p class="preview-clamp-2 text-xs font-normal leading-relaxed break-words text-zinc-800 mb-2.5">
+                            ${escapeHtml(m.text)}
+                        </p>
+
+                        <div class="pt-2 border-t border-zinc-100 flex items-center justify-between text-[11px]" onclick="event.stopPropagation()">
+                            <button onclick="toggleDesignatedUser('${fullHandle}')" class="px-2 py-0.5 rounded border ${isDesignated ? 'bg-black text-white border-black' : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50'} font-medium transition">
+                                ${isDesignated ? '지정 해제' : '지정 추가'}
+                            </button>
+
+                            <button onclick="toggleHideNote('${m.id}')" class="px-2 py-0.5 rounded border border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50 font-medium transition">
+                                ${state.hiddenNoteIds.includes(m.id) ? '숨김 해제' : '숨김'}
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            lucide.createIcons();
+        }
+
+        function renderThreadVisualizer() {
+            const container = document.getElementById('threadVisualizerContainer');
+            if (!state.selectedNoteId) {
+                container.innerHTML = `
+                    <div class="h-32 flex items-center justify-center text-xs text-zinc-400 font-medium border border-dashed border-zinc-200 rounded-lg p-4 text-center">
+                        좌측 알림 목록에서 멘션을 선택해 주세요.
+                    </div>
+                `;
+                return;
+            }
+
+            if (state.threadData.loading) {
+                container.innerHTML = `
+                    <div class="h-32 flex items-center justify-center text-xs text-zinc-400 font-medium border border-dashed border-zinc-200 rounded-lg p-4 text-center">
+                        대화 타래를 불러오는 중입니다...
+                    </div>
+                `;
+                return;
+            }
+
+            const threadNotes = state.threadData.notes;
+            if (!threadNotes || threadNotes.length === 0) {
+                container.innerHTML = `
+                    <div class="h-32 flex items-center justify-center text-xs text-zinc-400 font-medium border border-dashed border-zinc-200 rounded-lg p-4 text-center">
+                        타래 내용이 없습니다.
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '<div class="space-y-3 pb-2">';
+
+            threadNotes.forEach((note) => {
+                const isCurrentTarget = note.id === state.selectedNoteId;
+
+                html += `
+                    <div class="relative">
+                        <div class="p-3.5 rounded-lg border ${isCurrentTarget ? 'border-zinc-900 bg-white shadow-sm ring-1 ring-zinc-900' : 'border-zinc-200 bg-white'} text-zinc-800 text-xs">
+                            <div class="flex items-center justify-between mb-2 pb-1.5 border-b border-zinc-100">
+                                <div class="flex items-center gap-2 min-w-0">
+                                    <img src="${note.user?.avatarUrl || 'https://placehold.co/80x80/000/fff?text=U'}" class="w-5 h-5 rounded-full border border-zinc-200 object-cover shrink-0">
+                                    <span class="font-semibold text-zinc-900 truncate">${escapeHtml(note.user?.name || note.user?.username)}</span>
+                                    <span class="text-[11px] text-zinc-500 font-normal truncate">@${escapeHtml(note.user?.username)}</span>
+                                </div>
+                                <span class="text-[11px] font-normal text-zinc-400 shrink-0">${formatRelativeTime(note.createdAt)}</span>
+                            </div>
+
+                            ${note.cw ? `<div class="p-2 mb-2 rounded bg-amber-50 border border-amber-200 text-amber-900 font-medium text-[11px]">CW: ${escapeHtml(note.cw)}</div>` : ''}
+
+                            <p class="text-xs font-normal leading-relaxed whitespace-pre-wrap text-zinc-800">${escapeHtml(note.text || '')}</p>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += '</div>';
+            container.innerHTML = html;
+
+            setTimeout(() => {
+                container.scrollTop = container.scrollHeight;
+            }, 50);
+        }
+
+        function insertUserMention(userHandle) {
+            const textarea = document.getElementById('replyTextInput');
+            const mentionTag = `@${userHandle.replace(/@+$/, '')} `;
+            if (!textarea.value.includes(mentionTag)) {
+                textarea.value = mentionTag + textarea.value;
+                updateReplyCharCounter();
+            }
+        }
+
+        function selectTargetNote(noteId) {
+            state.selectedNoteId = noteId;
+            const found = noteCache.get(noteId) || state.mentions.find(m => m.id === noteId);
+
+            if (found) {
+                document.getElementById('replyTargetUserLabel').textContent = `@${found.user.username}@${found.user.host || ''}`;
+                
+                const visibilitySelect = document.getElementById('replyVisibilitySelect');
+                if (visibilitySelect && found.visibility) {
+                    visibilitySelect.value = found.visibility;
+                }
+            } else {
+                document.getElementById('replyTargetUserLabel').textContent = `Note: ${noteId}`;
+            }
+
+            fetchThreadApi(noteId);
+            renderFeed();
+
+            state.mobileView = 'workspace';
+            updateResponsiveViews();
+        }
+
+        function deselectTargetNote() {
+            state.selectedNoteId = null;
+            state.threadData = { notes: [], loading: false };
+            document.getElementById('replyTargetUserLabel').textContent = '지정 없음';
+            renderFeed();
+            renderThreadVisualizer();
+        }
+
+        function switchToMobileList() {
+            state.mobileView = 'list';
+            updateResponsiveViews();
+        }
+
+        function updateResponsiveViews() {
+            const sidePanel = document.getElementById('sideNotificationPanel');
+            const mainPanel = document.getElementById('mainWorkspacePanel');
+
+            if (window.innerWidth < 768) {
+                if (state.mobileView === 'list') {
+                    sidePanel.classList.remove('hidden');
+                    sidePanel.classList.add('w-full');
+                    mainPanel.classList.add('hidden');
+                    mainPanel.classList.remove('flex');
+                } else {
+                    sidePanel.classList.add('hidden');
+                    sidePanel.classList.remove('w-full');
+                    mainPanel.classList.remove('hidden');
+                    mainPanel.classList.add('flex', 'w-full');
+                }
+            } else {
+                sidePanel.classList.remove('hidden', 'w-full');
+                mainPanel.classList.remove('hidden');
+                mainPanel.classList.add('flex');
+            }
+        }
+
+        window.addEventListener('resize', updateResponsiveViews);
+
+        function isDesignatedUser(userObj) {
+            if (!userObj) return false;
+            const fullHandle = `${userObj.username}@${userObj.host || ''}`.toLowerCase();
+            const usernameOnly = userObj.username.toLowerCase();
+
+            return state.designatedUsers.some(u => {
+                const clean = u.toLowerCase().replace(/^@/, '');
+                return clean === fullHandle || clean === usernameOnly;
+            });
+        }
+
+        function toggleDesignatedUser(handle) {
+            const cleanHandle = handle.toLowerCase().replace(/^@/, '');
+            const index = state.designatedUsers.findIndex(u => u.toLowerCase().replace(/^@/, '') === cleanHandle);
+
+            if (index > -1) {
+                state.designatedUsers.splice(index, 1);
+                showToast("지정 사용자 해제되었습니다.", "info");
+            } else {
+                state.designatedUsers.push(cleanHandle);
+                showToast("지정 사용자 추가되었습니다.", "success");
+            }
+
+            saveLocalState();
+            renderFilters();
+            renderFeed();
+        }
+
+        function toggleHideNote(noteId) {
+            if (state.hiddenNoteIds.includes(noteId)) {
+                state.hiddenNoteIds = state.hiddenNoteIds.filter(id => id !== noteId);
+            } else {
+                state.hiddenNoteIds.push(noteId);
+            }
+            saveLocalState();
+            renderFilters();
+            renderFeed();
+        }
+
+        function handleFeedSearch() {
+            state.filters.searchQuery = document.getElementById('feedSearchInput').value.trim();
+            renderFeed();
+        }
+
+        function toggleCwInput() {
+            state.replyForm.showCw = !state.replyForm.showCw;
+            const container = document.getElementById('cwInputContainer');
+            if (state.replyForm.showCw) {
+                container.classList.remove('hidden');
+            } else {
+                container.classList.add('hidden');
+                document.getElementById('replyCwInput').value = '';
+            }
+        }
+
+        function updateReplyCharCounter() {
+            const count = document.getElementById('replyTextInput').value.length;
+            document.getElementById('replyCharCounter').textContent = `${count} / 3000`;
+        }
+
+        function openAccountManager() {
+            openModal('accountModal');
+        }
+
+        function renderModalAccountList() {
+            const container = document.getElementById('modalAccountList');
+            if (state.accounts.length === 0) {
+                container.innerHTML = `<p class="text-xs text-zinc-400 font-medium py-1">등록된 계정이 없습니다.</p>`;
+                return;
+            }
+
+            container.innerHTML = state.accounts.map(acc => `
+                <div class="flex items-center justify-between p-2.5 rounded-lg border border-zinc-200 bg-white">
+                    <div class="min-w-0">
+                        <p class="text-xs font-semibold text-zinc-900 truncate">@${acc.user.username}</p>
+                        <p class="text-[11px] text-zinc-500 truncate">${acc.instance}</p>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <button onclick="selectActiveAccount('${acc.id}')" class="px-2.5 py-1 rounded text-xs font-medium transition ${acc.id === state.activeAccountId ? 'bg-black text-white' : 'bg-zinc-100 text-zinc-700 hover:bg-zinc-200'}">
+                            ${acc.id === state.activeAccountId ? '선택됨' : '선택'}
+                        </button>
+                        <button onclick="removeAccount('${acc.id}')" class="px-2.5 py-1 rounded border border-zinc-200 text-zinc-600 hover:bg-zinc-50 text-xs font-medium transition">
+                            삭제
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function selectActiveAccount(accId) {
+            state.activeAccountId = accId;
+            saveLocalState();
+            renderAll();
+            manualFetchMentions();
+            closeModal('accountModal');
+        }
+
+        function removeAccount(accId) {
+            state.accounts = state.accounts.filter(a => a.id !== accId);
+            if (state.activeAccountId === accId) {
+                state.activeAccountId = state.accounts[0]?.id || null;
+            }
+            saveLocalState();
+            renderAll();
+        }
+
+        function openModal(id) {
+            document.getElementById(id).classList.remove('hidden');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            
+            toast.className = 'px-3.5 py-2 rounded-lg border border-zinc-200 bg-white text-zinc-800 text-xs font-medium shadow-lg pointer-events-auto transition transform translate-y-2 opacity-0';
+            toast.textContent = message;
+
+            container.appendChild(toast);
+
+            requestAnimationFrame(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            });
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 200);
+            }, 2500);
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+        }
+
+        function formatRelativeTime(isoString) {
+            if (!isoString) return '';
+            const date = new Date(isoString);
+            const now = new Date();
+            const diffSec = Math.floor((now - date) / 1000);
+
+            if (diffSec < 60) return '방금 전';
+            if (diffSec < 3600) return `${Math.floor(diffSec / 60)}분 전`;
+            if (diffSec < 86400) return `${Math.floor(diffSec / 3600)}시간 전`;
+            return `${Math.floor(diffSec / 86400)}일 전`;
+        }
+    </script>
+</body>
+</html>
