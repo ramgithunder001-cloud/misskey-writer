@@ -53,6 +53,7 @@
     <style>
         :root {
             --app-font-size: 14px;
+            --fs-scale: 1;   /* 글자 크기 배율 (선택값 / 14px) */
             --paper-bg: #F2F2F2;
             --paper-card-bg: #F8F8F8;
             --paper-line-color: #E0E0E0;
@@ -67,11 +68,18 @@
             background-image: var(--grain-texture);
             color: var(--ink-text);
             font-family: 'Pretendard Variable', Pretendard, sans-serif;
-            font-size: var(--app-font-size);
             -webkit-tap-highlight-color: transparent;
             height: 100%;
             overflow: hidden;
         }
+        html { font-size: 14px; }
+        body { font-size: calc(14px * var(--fs-scale)); }
+
+        /* 글자 크기 설정: 여백·아이콘은 그대로 두고 글자만 일괄 배율 적용 */
+        .text-xs { font-size: calc(0.75rem * var(--fs-scale)) !important; line-height: calc(1rem * var(--fs-scale)) !important; }
+        .text-sm { font-size: calc(0.875rem * var(--fs-scale)) !important; line-height: calc(1.25rem * var(--fs-scale)) !important; }
+        .text-\[11px\] { font-size: calc(11px * var(--fs-scale)) !important; }
+        .text-\[10px\] { font-size: max(9px, calc(10px * var(--fs-scale))) !important; }
 
         /* Custom Paper Minimal Scrollbar */
         ::-webkit-scrollbar {
@@ -97,7 +105,7 @@
         input, textarea, select {
             -webkit-user-select: text;
             user-select: text;
-            font-size: 16px;
+            font-size: max(16px, calc(14px * var(--fs-scale)));
         }
 
         /* Header & Panel Transparency for Layered Paper Feel */
@@ -187,13 +195,13 @@
             margin-top: 2px;
             margin-bottom: 8px;
         }
-        .quote-block .quote-text { font-size: 12px; line-height: 1.55; color: #3C3C3C; }
-        .quote-missing { font-size: 11px; color: #858585; border-style: dashed; border-left-style: dashed; }
+        .quote-block .quote-text { font-size: calc(12px * var(--fs-scale)); line-height: 1.55; color: #3C3C3C; }
+        .quote-missing { font-size: calc(11px * var(--fs-scale)); color: #858585; border-style: dashed; border-left-style: dashed; }
 
         /* Ink & Text Typography Hierarchy */
-        .card-name { font-size: 13px; font-weight: 600; color: #262626; }
-        .card-handle { font-size: 11px; font-weight: 400; color: #858585; }
-        .card-body { font-size: 13px; line-height: 1.6; font-weight: 400; color: #1F1F1F; }
+        .card-name { font-size: calc(13px * var(--fs-scale)); font-weight: 600; color: #262626; }
+        .card-handle { font-size: calc(11px * var(--fs-scale)); font-weight: 400; color: #858585; }
+        .card-body { font-size: calc(13px * var(--fs-scale)); line-height: 1.6; font-weight: 400; color: #1F1F1F; }
         .mention-tag { color: #8A8A8A; font-weight: 500; }
 
         /* Stamp Badge Style */
@@ -202,7 +210,7 @@
             align-items: center;
             justify-content: center;
             padding: 1px 7px;
-            font-size: 10px;
+            font-size: max(9px, calc(10px * var(--fs-scale)));
             font-weight: 700;
             letter-spacing: 0.05em;
             color: #8C3A32;
@@ -673,7 +681,16 @@
 
         function registerServiceWorker() {
             if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
-                navigator.serviceWorker.register('sw.js').catch(e => console.warn('SW 등록 실패', e));
+                const hadController = !!navigator.serviceWorker.controller;
+                let reloaded = false;
+                navigator.serviceWorker.addEventListener('controllerchange', () => {
+                    if (!hadController || reloaded) return;   // 최초 설치 때는 새로고침하지 않음
+                    reloaded = true;
+                    location.reload();
+                });
+                navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' })
+                    .then(reg => reg.update())
+                    .catch(e => console.warn('SW 등록 실패', e));
             }
         }
 
@@ -930,12 +947,14 @@
         function setFontSize(size) {
             state.fontSize = size;
             applyFontSize(size);
-            saveLocalState();
+            saveLocalState(true);   // 글자 크기는 기기별 설정: 동기화 시각을 갱신하거나 클라우드에 올리지 않음
             updateFontSizeUI();
         }
 
         function applyFontSize(size) {
-            document.documentElement.style.setProperty('--app-font-size', size);
+            const px = parseFloat(size) || 14;
+            document.documentElement.style.setProperty('--app-font-size', px + 'px');
+            document.documentElement.style.setProperty('--fs-scale', String(px / 14));
         }
 
         function updateFontSizeUI() {
