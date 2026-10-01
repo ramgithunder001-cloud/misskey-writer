@@ -278,6 +278,14 @@
                 </div>
             </div>
 
+            <div class="border-t border-zinc-100 pt-3">
+                <label class="text-xs font-medium text-zinc-700 block mb-1">기기 간 동기화</label>
+                <p id="syncStatus" class="text-[11px] text-zinc-500 mb-2 leading-relaxed">확인 중...</p>
+                <input type="password" id="syncPhraseInput" placeholder="동기화 문자 (10자 이상, 모든 기기에서 동일하게)" class="w-full border border-zinc-200 rounded-md px-2.5 py-1.5 text-xs text-zinc-800 focus:outline-none focus:border-zinc-400 mb-2">
+                <button id="syncLoginBtn" onclick="syncLogin()" class="w-full py-2 rounded-md border border-zinc-200 text-xs font-medium bg-white text-zinc-700 hover:bg-zinc-50 transition">연결하기</button>
+                <button id="syncLogoutBtn" onclick="syncLogout()" class="hidden w-full py-2 rounded-md border border-zinc-200 text-xs font-medium bg-white text-zinc-700 hover:bg-zinc-50 transition">로그아웃</button>
+            </div>
+
             <button onclick="closeModal('settingsModal')" class="w-full py-2 bg-black text-white hover:bg-zinc-800 rounded-md font-medium text-xs transition mt-2">
                 확인
             </button>
@@ -345,6 +353,11 @@
     <!-- Toast Notification Container -->
     <div id="toastContainer" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
+    <!-- Firebase SDK (compat) -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
     <script>
         const STORAGE_KEY = 'MISSKEY_MW_V8_THREAD_FIX';
 
@@ -359,7 +372,8 @@
             filters: { category: 'all', searchQuery: '', threadGrouping: true },
             replyForm: { cw: '', showCw: false },
             fontSize: '14px',
-            mobileView: 'list'    // 'list' | 'workspace'
+            mobileView: 'list',   // 'list' | 'workspace'
+            updatedAt: 0          // 동기화용 마지막 수정 시각
         };
 
         // Cache for all known notes and parent links
@@ -388,6 +402,7 @@
             }, 30000);
 
             renderAll();
+            initSync();
         };
 
         function loadLocalState() {
@@ -400,6 +415,7 @@
                     state.designatedUsers = parsed.designatedUsers || [];
                     state.hiddenNoteIds = parsed.hiddenNoteIds || [];
                     state.fontSize = parsed.fontSize || '14px';
+                    state.updatedAt = parsed.updatedAt || 0;
                     if (typeof parsed.threadGrouping === 'boolean') {
                         state.filters.threadGrouping = parsed.threadGrouping;
                     }
@@ -409,9 +425,11 @@
             }
         }
 
-        function saveLocalState() {
+        function saveLocalState(skipSync) {
             try {
+                if (!skipSync) state.updatedAt = Date.now();
                 const payload = {
+                    updatedAt: state.updatedAt,
                     accounts: state.accounts,
                     activeAccountId: state.activeAccountId,
                     designatedUsers: state.designatedUsers,
@@ -420,10 +438,161 @@
                     threadGrouping: state.filters.threadGrouping
                 };
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+                if (!skipSync) pushToCloud(payload);
             } catch (e) {
                 console.error("Local save error:", e);
             }
         }
+
+        /* ================= Firebase 동기화 ================= */
+        // ★ Firebase 콘솔 > 프로젝트 설정 > 내 앱(웹)의 firebaseConfig 값으로 교체하세요.
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT_ID.appspot.com",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        let fbAuth = null, fbDb = null, fbUser = null, fbUnsub = null, pushTimer = null;
+
+        function syncConfigured() {
+            return firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith('YOUR_');
+        }
+
+        function setSyncStatus(text) {
+            const el = document.getElementById('syncStatus');
+            if (el) el.textContent = text;
+            const inBtn = document.getElementById('syncLoginBtn');
+            const outBtn = document.getElementById('syncLogoutBtn');
+            if (inBtn) inBtn.classList.toggle('hidden', !!fbUser || !syncConfigured());
+            const phraseEl = document.getElementById('syncPhraseInput');
+            if (phraseEl) phraseEl.classList.toggle('hidden', !!fbUser || !syncConfigured());
+            if (outBtn) outBtn.classList.toggle('hidden', !fbUser);
+        }
+
+        function initSync() {
+            if (!syncConfigured() || typeof firebase === 'undefined') {
+                setSyncStatus('Firebase 설정이 아직 입력되지 않았어요 (로컬 저장만 사용 중)');
+                return;
+            }
+            firebase.initializeApp(firebaseConfig);
+            fbAuth = firebase.auth();
+            fbDb = firebase.firestore();
+            fbAuth.getRedirectResult().catch(e => console.error('redirect error', e));
+            fbAuth.onAuthStateChanged(user => {
+                fbUser = user;
+                if (fbUnsub) { fbUnsub(); fbUnsub = null; }
+                if (user) {
+                    setSyncStatus('동기화 중 (이 기기에서 로그인됨)');
+                    startCloudListener();
+                } else {
+                    setSyncStatus('연결 안 됨 (이 기기에만 저장됨)');
+                }
+            });
+        }
+
+        async function deriveCreds(phrase) {
+            const enc = new TextEncoder();
+            const hex = async (t) => Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', enc.encode(t))))
+                .map(b => b.toString(16).padStart(2, '0')).join('');
+            const idHash = await hex('misskey-mw-id:' + phrase);
+            const pwHash = await hex('misskey-mw-pw:' + phrase);
+            return { email: idHash.slice(0, 40) + '@sync.misskey-mw.app', password: pwHash };
+        }
+
+        async function syncLogin() {
+            if (!fbAuth) return;
+            const phrase = document.getElementById('syncPhraseInput').value.trim();
+            if (phrase.length < 10) {
+                showToast('동기화 문자는 10자 이상으로 입력하세요.', 'warning');
+                return;
+            }
+            const btn = document.getElementById('syncLoginBtn');
+            btn.disabled = true;
+            try {
+                const { email, password } = await deriveCreds(phrase);
+                try {
+                    await fbAuth.signInWithEmailAndPassword(email, password);
+                } catch (e) {
+                    if (e.code === 'auth/user-not-found' || e.code === 'auth/invalid-credential' || e.code === 'auth/invalid-login-credentials') {
+                        await fbAuth.createUserWithEmailAndPassword(email, password);
+                    } else {
+                        throw e;
+                    }
+                }
+                document.getElementById('syncPhraseInput').value = '';
+            } catch (e) {
+                console.error(e);
+                showToast('동기화 실패: ' + (e.code || e.message), 'error');
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        function syncLogout() {
+            if (fbAuth) fbAuth.signOut();
+        }
+
+        function cloudDoc() {
+            return fbDb.collection('users').doc(fbUser.uid);
+        }
+
+        function startCloudListener() {
+            fbUnsub = cloudDoc().onSnapshot(snap => {
+                if (!snap.exists) {
+                    // 클라우드에 데이터가 없으면 현재 기기 데이터를 올림
+                    pushToCloud(null, true);
+                    return;
+                }
+                const remote = snap.data();
+                if ((remote.updatedAt || 0) > (state.updatedAt || 0)) {
+                    applyRemote(remote);
+                } else if ((remote.updatedAt || 0) < (state.updatedAt || 0) && !snap.metadata.hasPendingWrites) {
+                    pushToCloud(null, true);
+                }
+            }, err => {
+                console.error('sync error', err);
+                setSyncStatus('동기화 오류: ' + err.code);
+            });
+        }
+
+        function applyRemote(remote) {
+            const prevActive = state.activeAccountId;
+            state.accounts = remote.accounts || [];
+            state.activeAccountId = remote.activeAccountId || state.accounts[0]?.id || null;
+            state.designatedUsers = remote.designatedUsers || [];
+            state.hiddenNoteIds = remote.hiddenNoteIds || [];
+            state.fontSize = remote.fontSize || '14px';
+            if (typeof remote.threadGrouping === 'boolean') state.filters.threadGrouping = remote.threadGrouping;
+            state.updatedAt = remote.updatedAt || Date.now();
+            saveLocalState(true);          // 되돌려 올리지 않도록 동기화 생략
+            applyFontSize(state.fontSize);
+            renderAll();
+            if (state.activeAccountId && (state.activeAccountId !== prevActive || state.mentions.length === 0)) {
+                manualFetchMentions();
+            }
+        }
+
+        function pushToCloud(payload, immediate) {
+            if (!fbUser || !fbDb) return;
+            clearTimeout(pushTimer);
+            const run = () => {
+                const data = payload || {
+                    updatedAt: state.updatedAt,
+                    accounts: state.accounts,
+                    activeAccountId: state.activeAccountId,
+                    designatedUsers: state.designatedUsers,
+                    hiddenNoteIds: state.hiddenNoteIds,
+                    fontSize: state.fontSize,
+                    threadGrouping: state.filters.threadGrouping
+                };
+                cloudDoc().set(data).catch(e => console.error('push error', e));
+            };
+            if (immediate) run(); else pushTimer = setTimeout(run, 800);
+        }
+        /* ================= /Firebase 동기화 ================= */
 
         function setFontSize(size) {
             state.fontSize = size;
