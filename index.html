@@ -8,15 +8,15 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="theme-color" content="#F4F4F4">
+    <meta name="theme-color" content="#F2F2F2">
     <meta name="apple-mobile-web-app-title" content="MW">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="icon-192.png">
     <link rel="icon" type="image/png" href="icon-192.png">
     
-    <title>Misskey Mention Writer</title>
+    <title>Misskey Mention Writer - Paper Edition</title>
 
-    <!-- Pretendard Font CDN -->
+    <!-- Pretendard Font CDN (Preserved) -->
     <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
     
     <!-- Tailwind CSS CDN -->
@@ -27,6 +27,20 @@
                 extend: {
                     fontFamily: {
                         sans: ['Pretendard Variable', 'Pretendard', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'sans-serif'],
+                        serif: ['Georgia', 'Cambria', 'Times New Roman', 'serif']
+                    },
+                    colors: {
+                        paper: {
+                            base: '#F2F2F2',
+                            card: '#F8F8F8',
+                            bright: '#FFFFFF',
+                            line: '#E0E0E0',
+                            border: '#D4D4D4',
+                            ink: '#262626',
+                            sub: '#666666',
+                            muted: '#9A9A9A',
+                            stamp: '#8C3A32'
+                        }
                     }
                 }
             }
@@ -37,14 +51,21 @@
     <script src="https://unpkg.com/lucide@latest"></script>
 
     <style>
-        /* Dynamic Root Font Size Control */
         :root {
             --app-font-size: 14px;
+            --paper-bg: #F2F2F2;
+            --paper-card-bg: #F8F8F8;
+            --paper-line-color: #E0E0E0;
+            --paper-border-color: #D4D4D4;
+            --ink-text: #262626;
+            --grain-texture: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.25  0 0 0 0 0.25  0 0 0 0 0.25  0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url%28%23n%29'/%3E%3C/svg%3E");
+            --grid-line-pattern: linear-gradient(to bottom, transparent 95%, rgba(190, 190, 190, 0.25) 95%);
         }
 
         html, body {
-            background-color: #ffffff;
-            color: #18181b;
+            background-color: var(--paper-bg);
+            background-image: var(--grain-texture);
+            color: var(--ink-text);
             font-family: 'Pretendard Variable', Pretendard, sans-serif;
             font-size: var(--app-font-size);
             -webkit-tap-highlight-color: transparent;
@@ -52,42 +73,80 @@
             overflow: hidden;
         }
 
-        /* Custom Minimal Scrollbar */
+        /* Custom Paper Minimal Scrollbar */
         ::-webkit-scrollbar {
-            width: 5px;
-            height: 5px;
+            width: 6px;
+            height: 6px;
         }
         ::-webkit-scrollbar-track {
-            background: #ffffff;
+            background: transparent;
         }
         ::-webkit-scrollbar-thumb {
-            background: #d4d4d8;
-            border-radius: 3px;
+            background: #CCCCCC;
+            border-radius: 4px;
         }
         ::-webkit-scrollbar-thumb:hover {
-            background: #a1a1aa;
+            background: #AAAAAA;
         }
 
-        /* Mention Card Selection Styles */
+        /* Mobile Viewport Fix */
+        body {
+            padding-bottom: env(safe-area-inset-bottom, 0px);
+        }
+
+        input, textarea, select {
+            -webkit-user-select: text;
+            user-select: text;
+            font-size: 16px;
+        }
+
+        /* Header & Panel Transparency for Layered Paper Feel */
+        body > header {
+            background-color: rgba(242, 242, 242, 0.95) !important;
+            backdrop-filter: blur(8px);
+            border-bottom: 2px solid var(--paper-border-color);
+            box-shadow: 0 1px 4px rgba(30, 30, 30, 0.04);
+        }
+
+        /* Paper Note Cards */
         .mention-card {
-            border: 1px solid #e4e4e7;
-            background-color: #ffffff;
+            background-color: var(--paper-card-bg);
+            background-image: var(--grain-texture);
+            border: 1px solid var(--paper-border-color);
             border-radius: 8px;
-            transition: all 0.15s ease;
+            box-shadow: 0 2px 5px rgba(40, 40, 40, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+            transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
         }
 
         .mention-card:hover {
-            border-color: #a1a1aa;
-            background-color: #fafafa;
+            border-color: #B0B0B0;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 10px rgba(40, 40, 40, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+            background-color: #FCFCFC;
         }
 
         .mention-card.selected-card {
-            border-color: #000000;
-            box-shadow: 0 0 0 1px #000000;
-            background-color: #ffffff;
+            border-color: #262626;
+            box-shadow: 0 0 0 1.5px #262626, 0 6px 14px rgba(38, 38, 38, 0.12);
+            background-color: #FFFFFF;
         }
 
-        /* Truncate text to max 2 lines */
+        /* Subtle Corner fold visual indicator for selected note */
+        .mention-card.selected-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 0;
+            height: 0;
+            border-style: solid;
+            border-width: 0 14px 14px 0;
+            border-color: transparent #262626 transparent transparent;
+            border-bottom-left-radius: 2px;
+        }
+
+        /* Text Clamping */
         .preview-clamp-2 {
             display: -webkit-box;
             -webkit-line-clamp: 2;
@@ -96,242 +155,252 @@
             text-overflow: ellipsis;
         }
 
-        /* 입력창은 항상 선택/입력 가능하게 (iOS Safari 대응) */
-        input, textarea, select {
-            -webkit-user-select: text;
-            user-select: text;
-            font-size: 16px; /* iOS 입력 시 자동 확대 방지 */
+        /* Ruled Lines background effect for notebook area */
+        .notebook-ruled {
+            background-image: var(--grain-texture), var(--grid-line-pattern);
+            background-size: auto, 100% 24px;
+            line-height: 24px;
         }
 
-        /* 하단 홈 인디케이터 영역 확보 */
-        body {
-            padding-bottom: env(safe-area-inset-bottom, 0px);
+        /* Thread Note Cards */
+        .thread-note {
+            background-color: #F8F8F8;
+            background-image: var(--grain-texture);
+            border: 1px solid var(--paper-border-color);
+            box-shadow: 0 1px 4px rgba(40, 40, 40, 0.04);
+            border-radius: 8px;
         }
 
-        /* ===== 종이 노트 테마 ===== */
-        :root {
-            --paper: #F4F4F4;
-            --paper-card: #FCFCFB;
-            --paper-line: #E1DFDA;
-            --grain: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.30  0 0 0 0 0.27  0 0 0 0 0.22  0 0 0 0.075 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url%28%23n%29'/%3E%3C/svg%3E"), url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='600'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.012' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.45  0 0 0 0 0.40  0 0 0 0 0.32  0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url%28%23m%29'/%3E%3C/svg%3E");
-        }
-        html, body { background-color: var(--paper); }
-        body { background-image: var(--grain); }
-
-        /* 패널은 투명하게 두어 종이 질감이 비치게 */
-        body > header,
-        body > div.flex-1,
-        #sideNotificationPanel,
-        #mainWorkspacePanel,
-        #sideNotificationPanel > div,
-        #mainWorkspacePanel > div:not(#threadVisualizerContainer):not(:last-child) {
-            background-color: transparent !important;
-        }
-        body > header, #sideNotificationPanel, #sideNotificationPanel > div,
-        #mainWorkspacePanel > div { border-color: var(--paper-line); }
-
-        /* 하단 작성창: 한 장 올려둔 메모지 느낌 */
-        #mainWorkspacePanel > div:last-child {
-            background-color: var(--paper-card) !important;
-            background-image: var(--grain);
-            box-shadow: 0 -2px 8px rgba(60, 50, 30, 0.07);
+        .thread-note-current {
+            border-color: #262626;
+            background-color: #FFFFFF;
+            box-shadow: 0 4px 12px rgba(38, 38, 38, 0.09), 0 0 0 1px #262626;
         }
 
-        /* 멘션 카드: 겹쳐 놓은 종이 */
-        .mention-card {
-            background-color: var(--paper-card);
-            background-image: var(--grain);
-            border: 1px solid var(--paper-line);
-            border-radius: 6px;
-            box-shadow: 0 1px 0 rgba(255,255,255,.9) inset, 0 1px 2px rgba(60, 50, 30, 0.09);
-        }
-        .mention-card:hover { border-color: #b8b4aa; background-color: #ffffff; }
-        .mention-card.selected-card {
-            border-color: #18181b;
-            box-shadow: 0 0 0 1px #18181b, 0 4px 10px rgba(0, 0, 0, 0.10);
-            background-color: #ffffff;
-        }
+        /* Ink & Text Typography Hierarchy */
+        .card-name { font-size: 13px; font-weight: 600; color: #262626; }
+        .card-handle { font-size: 11px; font-weight: 400; color: #858585; }
+        .card-body { font-size: 13px; line-height: 1.6; font-weight: 400; color: #1F1F1F; }
+        .mention-tag { color: #8A8A8A; font-weight: 500; }
 
-        /* 모달/입력칸 */
-        #settingsModal > div, #accountModal > div, #lookupModal > div {
-            background-color: var(--paper-card);
-            background-image: var(--grain);
-            border-color: var(--paper-line);
-        }
-        #replyTextInput, #replyExtraParts textarea, #replyCwInput, #feedSearchInput {
-            background-color: #ffffff;
-            background-image: var(--grain);
-            border-color: var(--paper-line);
-            box-shadow: inset 0 1px 2px rgba(60, 50, 30, 0.06);
-        }
-
-        /* 답장함 도장 */
+        /* Stamp Badge Style */
         .stamp-badge {
-            display: inline-block; padding: 1px 6px; font-size: 10px; font-weight: 700; letter-spacing: .04em;
-            color: #3f3f46; border: 1.5px solid #3f3f46; border-radius: 4px;
-            transform: rotate(-3deg); opacity: .9;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1px 7px;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            color: #8C3A32;
+            border: 1.5px dashed #8C3A32;
+            border-radius: 4px;
+            transform: rotate(-2deg);
+            opacity: 0.9;
+            background-color: rgba(140, 58, 50, 0.04);
         }
 
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #cfcbc2; }
-
-        /* ===== 카드 미색 / 글자 위계 / 체크 표시 ===== */
-        :root { --paper-cream: #FAF6EA; }
-        .mention-card { background-color: var(--paper-cream); }
-        .mention-card:hover { background-color: #FDFAF1; }
-        .mention-card.selected-card { background-color: #FFFCF4; }
-        .thread-note { background-color: var(--paper-cream); background-image: var(--grain); }
-        .thread-note-current { box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08); background-color: #FFFCF4; }
-
-        .card-name   { font-size: 12px; font-weight: 600; color: #52525b; }
-        .card-handle { font-size: 11px; font-weight: 400; color: #b3afa4; }
-        .card-body   { font-size: 13px; line-height: 1.6; font-weight: 500; color: #18181b; }
-        .mention-tag { color: #a8a498; font-weight: 400; }
-
+        /* Reply Checkmark Button (Paper Ink Check) */
         .reply-check {
-            width: 24px; height: 24px; border-radius: 9999px;
-            border: 1.5px solid #cfcabd; background: transparent; color: #cfcabd;
-            font-size: 12px; line-height: 1; font-weight: 700;
-            display: inline-flex; align-items: center; justify-content: center;
-            cursor: pointer; transition: all .15s ease;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            border: 1.5px solid #B8B8B8;
+            background: transparent;
+            color: #B8B8B8;
+            font-size: 11px;
+            line-height: 1;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.15s ease;
         }
-        .reply-check:hover { border-color: #71717a; color: #71717a; }
-        .reply-check.checked { background: #27272a; border-color: #27272a; color: #ffffff; }
+        .reply-check:hover {
+            border-color: #262626;
+            color: #262626;
+            background: rgba(38, 38, 38, 0.05);
+        }
+        .reply-check.checked {
+            background: #262626;
+            border-color: #262626;
+            color: #F8F8F8;
+        }
+
+        /* Tactile Paper Button Effects */
+        .btn-paper {
+            background-color: #F8F8F8;
+            border: 1px solid var(--paper-border-color);
+            color: var(--ink-text);
+            box-shadow: 0 1px 2px rgba(40, 40, 40, 0.06);
+            transition: all 0.15s ease;
+        }
+        .btn-paper:hover {
+            background-color: #FFFFFF;
+            border-color: #B0B0B0;
+            box-shadow: 0 2px 4px rgba(40, 40, 40, 0.09);
+        }
+        .btn-paper-dark {
+            background-color: #262626;
+            border: 1px solid #262626;
+            color: #F8F8F8;
+            box-shadow: 0 2px 4px rgba(38, 38, 38, 0.15);
+            transition: all 0.15s ease;
+        }
+        .btn-paper-dark:hover {
+            background-color: #3C3C3C;
+            box-shadow: 0 3px 6px rgba(38, 38, 38, 0.22);
+        }
+
+        /* Composer Sticky Paper Box */
+        .composer-box {
+            background-color: #F8F8F8;
+            background-image: var(--grain-texture);
+            border-top: 2px solid var(--paper-border-color);
+            box-shadow: 0 -4px 12px rgba(30, 30, 30, 0.05);
+        }
     </style>
 </head>
-<body class="text-zinc-900 flex flex-col antialiased select-none" style="height:100vh;height:100dvh;">
+<body class="text-neutral-900 flex flex-col antialiased select-none" style="height:100vh;height:100dvh;">
 
     <!-- HEADER BAR -->
-    <header class="h-14 bg-white border-b border-zinc-200 px-4 py-2.5 flex items-center justify-between shrink-0 z-30">
+    <header class="h-14 px-4 py-2.5 flex items-center justify-between shrink-0 z-30">
         <div class="flex items-center gap-2">
-            <h1 class="text-xs font-bold tracking-wider text-zinc-900 uppercase">MISSKEY MENTION WRITER</h1>
+            <div class="w-6 h-6 rounded border-1.5 border-neutral-800 flex items-center justify-center font-bold text-xs bg-neutral-800 text-neutral-100 shadow-sm">
+                M
+            </div>
+            <h1 class="text-xs font-bold tracking-wider text-neutral-900 uppercase font-sans">MISSKEY MENTION WRITER</h1>
         </div>
 
         <div class="flex items-center gap-1.5">
             <!-- Settings Modal Button -->
-            <button onclick="openModal('settingsModal')" class="px-2.5 py-1.5 bg-white border border-zinc-200 rounded-md text-zinc-700 hover:bg-zinc-100 text-xs font-medium transition flex items-center gap-1.5">
-                <i data-lucide="settings" class="w-3.5 h-3.5 text-zinc-500"></i>
+            <button onclick="openModal('settingsModal')" class="btn-paper px-2.5 py-1.5 rounded-md text-neutral-700 text-xs font-medium flex items-center gap-1.5">
+                <i data-lucide="settings" class="w-3.5 h-3.5 text-neutral-500"></i>
                 <span class="hidden sm:inline">설정</span>
             </button>
 
             <!-- Direct Note Lookup Button -->
-            <button onclick="openModal('lookupModal')" class="px-2.5 py-1.5 bg-white border border-zinc-200 rounded-md text-zinc-700 hover:bg-zinc-100 text-xs font-medium transition flex items-center gap-1.5">
-                <i data-lucide="search" class="w-3.5 h-3.5 text-zinc-500"></i>
+            <button onclick="openModal('lookupModal')" class="btn-paper px-2.5 py-1.5 rounded-md text-neutral-700 text-xs font-medium flex items-center gap-1.5">
+                <i data-lucide="search" class="w-3.5 h-3.5 text-neutral-500"></i>
                 <span class="hidden sm:inline">조회</span>
             </button>
 
             <!-- Active Account Selector Button -->
-            <button onclick="openAccountManager()" id="accountSelectBtn" class="flex items-center gap-1.5 bg-white border border-zinc-200 rounded-md px-2.5 py-1.5 text-xs font-medium text-zinc-800 hover:bg-zinc-100 transition">
-                <i data-lucide="user" class="w-3.5 h-3.5 text-zinc-500"></i>
+            <button onclick="openAccountManager()" id="accountSelectBtn" class="btn-paper px-2.5 py-1.5 rounded-md text-xs font-medium text-neutral-800 flex items-center gap-1.5">
+                <i data-lucide="user" class="w-3.5 h-3.5 text-neutral-500"></i>
                 <span id="activeAccountLabel" class="max-w-[110px] truncate">계정 연결</span>
-                <i data-lucide="chevron-down" class="w-3 h-3 text-zinc-400"></i>
+                <i data-lucide="chevron-down" class="w-3 h-3 text-neutral-400"></i>
             </button>
         </div>
     </header>
 
     <!-- MAIN WORKSPACE & SIDEBAR CONTAINER -->
-    <div class="flex-1 min-h-0 flex overflow-hidden relative bg-white">
+    <div class="flex-1 min-h-0 flex overflow-hidden relative">
 
         <!-- SIDEBAR: NOTIFICATION & MENTION LIST -->
-        <aside id="sideNotificationPanel" class="w-full md:w-80 lg:w-96 border-r border-zinc-200 flex flex-col h-full bg-white shrink-0 z-10 transition-all duration-200">
+        <aside id="sideNotificationPanel" class="w-full md:w-80 lg:w-96 border-r border-neutral-300 flex flex-col h-full shrink-0 z-10 transition-all duration-200">
             
             <!-- Category Filter Header -->
-            <div class="p-2.5 border-b border-zinc-200 bg-zinc-50/50 flex flex-wrap items-center justify-between gap-1.5 shrink-0">
+            <div class="p-2.5 border-b border-neutral-300 bg-neutral-100/40 flex flex-wrap items-center justify-between gap-1.5 shrink-0">
                 <div class="flex flex-wrap items-center gap-1">
-                    <button onclick="setCategoryFilter('all')" id="filterTab-all" class="px-2.5 py-1 text-xs font-medium rounded-md bg-black text-white transition">
+                    <button onclick="setCategoryFilter('all')" id="filterTab-all" class="btn-paper-dark px-2.5 py-1 text-xs font-medium rounded-md transition">
                         전체 <span id="countBadge-all" class="ml-0.5 text-[10px] opacity-80">0</span>
                     </button>
-                    <button onclick="setCategoryFilter('designated')" id="filterTab-designated" class="px-2.5 py-1 text-xs font-medium rounded-md bg-white border border-zinc-200 text-zinc-600 hover:bg-zinc-100 transition">
+                    <button onclick="setCategoryFilter('designated')" id="filterTab-designated" class="btn-paper px-2.5 py-1 text-xs font-medium rounded-md text-neutral-700 transition">
                         지정 <span id="countBadge-designated" class="ml-0.5 text-[10px] opacity-80">0</span>
                     </button>
-                    <button onclick="setCategoryFilter('hidden')" id="filterTab-hidden" class="px-2.5 py-1 text-xs font-medium rounded-md bg-white border border-zinc-200 text-zinc-600 hover:bg-zinc-100 transition">
+                    <button onclick="setCategoryFilter('hidden')" id="filterTab-hidden" class="btn-paper px-2.5 py-1 text-xs font-medium rounded-md text-neutral-700 transition">
                         숨김 <span id="countBadge-hidden" class="ml-0.5 text-[10px] opacity-80">0</span>
                     </button>
-                    <button onclick="setCategoryFilter('unreplied')" id="filterTab-unreplied" class="px-2.5 py-1 text-xs font-medium rounded-md bg-white border border-zinc-200 text-zinc-600 hover:bg-zinc-100 transition">
+                    <button onclick="setCategoryFilter('unreplied')" id="filterTab-unreplied" class="btn-paper px-2.5 py-1 text-xs font-medium rounded-md text-neutral-700 transition">
                         미답장 <span id="countBadge-unreplied" class="ml-0.5 text-[10px] opacity-80">0</span>
                     </button>
                 </div>
 
-                <button onclick="toggleThreadGrouping()" id="threadGroupToggleBtn" class="px-2.5 py-1 text-xs font-medium rounded-md bg-black text-white transition" title="한 타래에서 나온 멘션을 하나로 묶어보기">
+                <button onclick="toggleThreadGrouping()" id="threadGroupToggleBtn" class="btn-paper-dark px-2.5 py-1 text-xs font-medium rounded-md transition" title="한 타래에서 나온 멘션을 하나로 묶어보기">
                     타래묶기: ON
                 </button>
             </div>
 
             <!-- Search and Refresh Controls -->
-            <div class="p-2.5 border-b border-zinc-200 bg-white flex items-center gap-2 shrink-0">
+            <div class="p-2.5 border-b border-neutral-300 flex items-center gap-2 shrink-0">
                 <div class="relative flex-1">
-                    <i data-lucide="search" class="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400"></i>
-                    <input type="text" id="feedSearchInput" oninput="handleFeedSearch()" placeholder="검색어 또는 사용자" class="w-full bg-zinc-50 border border-zinc-200 rounded-md pl-8 pr-2.5 py-1 text-xs text-zinc-800 placeholder-zinc-400 focus:outline-none focus:border-zinc-400 focus:bg-white transition">
+                    <i data-lucide="search" class="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-neutral-400"></i>
+                    <input type="text" id="feedSearchInput" oninput="handleFeedSearch()" placeholder="검색어 또는 사용자" class="w-full bg-neutral-50/80 border border-neutral-300 rounded-md pl-8 pr-2.5 py-1 text-xs text-neutral-800 placeholder-neutral-400 focus:outline-none focus:border-neutral-500 focus:bg-white transition shadow-inner">
                 </div>
-                <button onclick="manualFetchMentions()" class="px-2.5 py-1 bg-black text-white hover:bg-zinc-800 rounded-md text-xs font-medium transition shrink-0 flex items-center gap-1">
+                <button onclick="manualFetchMentions()" class="btn-paper-dark px-2.5 py-1 rounded-md text-xs font-medium transition shrink-0 flex items-center gap-1" title="새로고침">
                     <i data-lucide="refresh-cw" class="w-3 h-3"></i>
                 </button>
             </div>
 
             <!-- Mentions Scrollable Container -->
-            <div id="mentionsFeedContainer" class="flex-1 overflow-y-auto p-2.5 space-y-2">
+            <div id="mentionsFeedContainer" class="flex-1 overflow-y-auto p-2.5 space-y-2.5">
                 <!-- Mention cards dynamically rendered here -->
             </div>
 
             <!-- Load Older Mentions Pagination Button -->
-            <div class="p-2.5 border-t border-zinc-200 bg-white shrink-0">
-                <button onclick="fetchOlderMentions()" id="loadOlderBtn" class="w-full py-2 bg-white border border-zinc-200 rounded-md text-zinc-700 hover:bg-zinc-50 text-xs font-medium transition flex items-center justify-center gap-1.5">
-                    <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-zinc-400"></i>
+            <div class="p-2.5 border-t border-neutral-300 shrink-0">
+                <button onclick="fetchOlderMentions()" id="loadOlderBtn" class="btn-paper w-full py-2 rounded-md text-neutral-700 text-xs font-medium flex items-center justify-center gap-1.5">
+                    <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-neutral-500"></i>
                     <span>이전 멘션 불러오기</span>
                 </button>
             </div>
         </aside>
 
         <!-- MAIN PRIMARY WORKSPACE: THREAD VIEW & COMPOSER -->
-        <main id="mainWorkspacePanel" class="hidden md:flex flex-1 flex-col h-full bg-white relative overflow-hidden z-20">
+        <main id="mainWorkspacePanel" class="hidden md:flex flex-1 flex-col h-full relative overflow-hidden z-20">
             
             <!-- Mobile Workspace Top Navigation Bar -->
-            <div class="p-3 border-b border-zinc-200 bg-white flex items-center justify-between shrink-0">
+            <div class="p-3 border-b border-neutral-300 flex items-center justify-between shrink-0">
                 <div class="flex items-center gap-2">
-                    <button onclick="switchToMobileList()" class="md:hidden px-2.5 py-1 bg-black text-white text-xs font-medium rounded-md flex items-center gap-1">
+                    <button onclick="switchToMobileList()" class="md:hidden btn-paper-dark px-2.5 py-1 text-xs font-medium rounded-md flex items-center gap-1">
                         <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
                         <span>알림 목록</span>
                     </button>
-                    <span class="text-xs font-bold uppercase tracking-wider text-zinc-700 flex items-center gap-1.5">
-                        <i data-lucide="message-square" class="w-3.5 h-3.5 text-zinc-400"></i> 대화 타래
+                    <span class="text-xs font-bold uppercase tracking-wider text-neutral-700 flex items-center gap-1.5">
+                        <i data-lucide="message-square" class="w-3.5 h-3.5 text-neutral-400"></i> 대화 타래 노트
                     </span>
                 </div>
 
                 <div class="flex items-center gap-2">
-                    <button onclick="deselectTargetNote()" class="text-xs text-zinc-500 hover:text-zinc-800 font-medium flex items-center gap-1 transition">
+                    <button onclick="deselectTargetNote()" class="text-xs text-neutral-500 hover:text-neutral-800 font-medium flex items-center gap-1 transition">
                         <i data-lucide="x" class="w-3 h-3"></i> 선택 해제
                     </button>
                 </div>
             </div>
 
             <!-- Conversation Thread Scroll Area -->
-            <div id="threadVisualizerContainer" class="flex-1 min-h-0 overflow-y-auto p-4 space-y-3 bg-zinc-50/30">
+            <div id="threadVisualizerContainer" class="flex-1 min-h-0 overflow-y-auto p-4 space-y-3 notebook-ruled">
                 <!-- Thread messages rendered here chronologically -->
             </div>
 
             <!-- FIXED BOTTOM COMPOSER BOX -->
-            <div class="border-t border-zinc-200 bg-white p-3.5 shrink-0 flex flex-col gap-2.5 shadow-sm max-h-[65%] overflow-y-auto">
+            <div class="composer-box p-3.5 shrink-0 flex flex-col gap-2.5 shadow-md max-h-[65%] overflow-y-auto">
                 
-                <div class="flex items-center justify-between text-xs border-b border-zinc-100 pb-2">
+                <div class="flex items-center justify-between text-xs border-b border-neutral-200 pb-2">
                     <div class="flex items-center gap-1.5 truncate">
-                        <span class="px-2 py-0.5 bg-zinc-100 text-zinc-700 text-[10px] font-semibold rounded">수신자</span>
-                        <span id="replyTargetUserLabel" class="font-medium text-zinc-800 truncate">지정 없음</span>
+                        <span class="px-2 py-0.5 bg-neutral-200 text-neutral-800 text-[10px] font-bold rounded">수신자</span>
+                        <span id="replyTargetUserLabel" class="font-medium text-neutral-800 truncate">지정 없음</span>
                     </div>
                 </div>
 
                 <!-- 이어쓰기 중 안내 -->
-                <div id="chainNotice" class="hidden items-center justify-between gap-2 text-[11px] bg-amber-50 border border-amber-200 text-amber-900 rounded-md px-2 py-1">
-                    <span>이어쓰기 중 — 직전에 전송된 노트에 이어서 전송돼요</span>
-                    <button onclick="cancelChain()" class="underline font-medium shrink-0">취소</button>
+                <div id="chainNotice" class="hidden items-center justify-between gap-2 text-[11px] bg-neutral-200/70 border border-neutral-400 text-neutral-800 rounded-md px-2.5 py-1.5">
+                    <span class="flex items-center gap-1">
+                        <i data-lucide="link" class="w-3 h-3 shrink-0"></i>
+                        <span>이어쓰기 중 — 직전에 전송된 노트에 이어서 전송돼요</span>
+                    </span>
+                    <button onclick="cancelChain()" class="underline font-semibold shrink-0 hover:text-neutral-900">취소</button>
                 </div>
 
                 <!-- CW Input Field -->
                 <div id="cwInputContainer" class="hidden">
-                    <input type="text" id="replyCwInput" placeholder="CW 경고 문구 입력" class="w-full bg-zinc-50 border border-zinc-200 rounded-md px-2.5 py-1.5 text-xs text-zinc-800 placeholder-zinc-400 focus:outline-none focus:border-zinc-400 focus:bg-white transition">
+                    <input type="text" id="replyCwInput" placeholder="CW 경고 문구 입력 (내용 가리기)" class="w-full bg-white border border-neutral-300 rounded-md px-2.5 py-1.5 text-xs text-neutral-800 placeholder-neutral-400 focus:outline-none focus:border-neutral-500 transition shadow-inner">
                 </div>
 
                 <!-- Main Reply Text Area -->
-                <textarea id="replyTextInput" rows="3" oninput="updateReplyCharCounter()" placeholder="멘션 내용을 작성하세요." class="w-full bg-zinc-50 border border-zinc-200 rounded-md p-2.5 text-xs text-zinc-800 placeholder-zinc-400 focus:outline-none focus:border-zinc-400 focus:bg-white transition resize-none leading-relaxed"></textarea>
+                <textarea id="replyTextInput" rows="3" oninput="updateReplyCharCounter()" placeholder="답장 내용을 작성하세요 (종이 위에 쓰듯 편하게 입력하세요)" class="w-full bg-white border border-neutral-300 rounded-md p-2.5 text-xs text-neutral-800 placeholder-neutral-400 focus:outline-none focus:border-neutral-500 transition resize-none leading-relaxed shadow-inner"></textarea>
 
                 <!-- + 이어쓰기로 추가한 입력칸 -->
                 <div id="replyExtraParts" class="flex flex-col gap-2"></div>
@@ -339,30 +408,30 @@
                 <!-- Controls & Submit Bar -->
                 <div class="flex flex-wrap items-center justify-between gap-2 pt-0.5">
                     <div class="flex items-center gap-1.5">
-                        <button onclick="toggleCwInput()" id="cwToggleBtn" class="px-2.5 py-1 bg-white border border-zinc-200 rounded-md text-zinc-700 hover:bg-zinc-100 text-xs font-medium transition">
+                        <button onclick="toggleCwInput()" id="cwToggleBtn" class="btn-paper px-2.5 py-1 rounded-md text-neutral-700 text-xs font-medium">
                             CW
                         </button>
 
-                        <button onclick="addReplyPart()" id="addPartBtn" title="이어서 보낼 노트 칸 추가 (앞 노트에 이어 답장으로 연결돼요)" class="px-2.5 py-1 bg-white border border-zinc-200 rounded-md text-zinc-700 hover:bg-zinc-100 text-xs font-medium transition">
+                        <button onclick="addReplyPart()" id="addPartBtn" title="이어서 보낼 노트 칸 추가 (앞 노트에 이어 답장으로 연결돼요)" class="btn-paper px-2.5 py-1 rounded-md text-neutral-700 text-xs font-medium">
                             + 이어쓰기
                         </button>
 
-                        <select id="replyVisibilitySelect" class="bg-white border border-zinc-200 rounded-md text-xs text-zinc-700 px-2 py-1 font-medium focus:outline-none focus:border-zinc-400">
+                        <select id="replyVisibilitySelect" class="btn-paper rounded-md text-xs text-neutral-700 px-2 py-1 font-medium focus:outline-none focus:border-neutral-400">
                             <option value="public">전체 공개</option>
                             <option value="home">홈 타임라인</option>
                             <option value="followers">팔로워 전용</option>
                             <option value="specified">다이렉트 (지정)</option>
                         </select>
 
-                        <label class="flex items-center gap-1.5 text-zinc-600 text-xs cursor-pointer font-medium ml-1">
-                            <input type="checkbox" id="replyLocalOnlyCheck" class="rounded border-zinc-300 text-black focus:ring-0">
+                        <label class="flex items-center gap-1.5 text-neutral-700 text-xs cursor-pointer font-medium ml-1">
+                            <input type="checkbox" id="replyLocalOnlyCheck" class="rounded border-neutral-300 text-neutral-800 focus:ring-0">
                             <span>연합 제외</span>
                         </label>
                     </div>
 
                     <div class="flex items-center gap-3">
-                        <span id="replyCharCounter" class="text-xs font-mono font-medium text-zinc-400">0 / 3000</span>
-                        <button onclick="submitReplyNote()" id="sendReplyBtn" class="px-4 py-1.5 bg-black text-white hover:bg-zinc-800 rounded-md font-medium text-xs transition flex items-center gap-1.5 shadow-sm">
+                        <span id="replyCharCounter" class="text-xs font-mono font-medium text-neutral-500">0 / 3000</span>
+                        <button onclick="submitReplyNote()" id="sendReplyBtn" class="btn-paper-dark px-4 py-1.5 rounded-md font-medium text-xs flex items-center gap-1.5">
                             <i data-lucide="send" class="w-3.5 h-3.5"></i>
                             <span>전송</span>
                         </button>
@@ -372,76 +441,76 @@
         </main>
     </div>
 
-    <!-- SETTINGS MODAL (Font Size Settings) -->
-    <div id="settingsModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white border border-zinc-200 rounded-xl shadow-2xl w-full max-w-sm p-5 flex flex-col gap-4">
-            <div class="flex items-center justify-between border-b border-zinc-100 pb-3">
-                <h3 class="text-xs font-bold text-zinc-900 uppercase">설정</h3>
-                <button onclick="closeModal('settingsModal')" class="text-zinc-400 hover:text-zinc-700 p-1 rounded-md">
+    <!-- SETTINGS MODAL (Font Size Settings & Firebase Sync) -->
+    <div id="settingsModal" class="fixed inset-0 bg-neutral-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-[#F8F8F8] border-2 border-neutral-300 rounded-xl shadow-2xl w-full max-w-sm p-5 flex flex-col gap-4 relative">
+            <div class="flex items-center justify-between border-b border-neutral-200 pb-3">
+                <h3 class="text-xs font-bold text-neutral-900 uppercase tracking-wide">설정</h3>
+                <button onclick="closeModal('settingsModal')" class="text-neutral-400 hover:text-neutral-700 p-1 rounded-md">
                     <i data-lucide="x" class="w-4 h-4"></i>
                 </button>
             </div>
 
             <div>
-                <label class="text-xs font-medium text-zinc-700 block mb-2">글자 크기 변경</label>
+                <label class="text-xs font-medium text-neutral-700 block mb-2">글자 크기 변경</label>
                 <div class="grid grid-cols-2 gap-2">
-                    <button onclick="setFontSize('12px')" id="fontSizeBtn-12px" class="py-2 rounded-md border border-zinc-200 text-xs font-medium bg-white text-zinc-700 hover:bg-zinc-50 transition">
+                    <button onclick="setFontSize('12px')" id="fontSizeBtn-12px" class="btn-paper py-2 rounded-md text-xs font-medium">
                         작게 (12px)
                     </button>
-                    <button onclick="setFontSize('14px')" id="fontSizeBtn-14px" class="py-2 rounded-md border border-black text-xs font-medium bg-black text-white transition">
+                    <button onclick="setFontSize('14px')" id="fontSizeBtn-14px" class="btn-paper-dark py-2 rounded-md text-xs font-medium">
                         보통 (14px)
                     </button>
-                    <button onclick="setFontSize('16px')" id="fontSizeBtn-16px" class="py-2 rounded-md border border-zinc-200 text-xs font-medium bg-white text-zinc-700 hover:bg-zinc-50 transition">
+                    <button onclick="setFontSize('16px')" id="fontSizeBtn-16px" class="btn-paper py-2 rounded-md text-xs font-medium">
                         크게 (16px)
                     </button>
-                    <button onclick="setFontSize('18px')" id="fontSizeBtn-18px" class="py-2 rounded-md border border-zinc-200 text-xs font-medium bg-white text-zinc-700 hover:bg-zinc-50 transition">
+                    <button onclick="setFontSize('18px')" id="fontSizeBtn-18px" class="btn-paper py-2 rounded-md text-xs font-medium">
                         매우 크게 (18px)
                     </button>
                 </div>
             </div>
 
-            <div class="border-t border-zinc-100 pt-3">
-                <label class="text-xs font-medium text-zinc-700 block mb-1">기기 간 동기화</label>
-                <p id="syncStatus" class="text-[11px] text-zinc-500 mb-2 leading-relaxed">확인 중...</p>
-                <input type="password" id="syncPhraseInput" placeholder="동기화 문자 (8자 이상, 모든 기기에서 동일하게)" class="w-full border border-zinc-200 rounded-md px-2.5 py-1.5 text-xs text-zinc-800 focus:outline-none focus:border-zinc-400 mb-2">
-                <button id="syncLoginBtn" onclick="syncLogin()" class="w-full py-2 rounded-md border border-zinc-200 text-xs font-medium bg-white text-zinc-700 hover:bg-zinc-50 transition">연결하기</button>
-                <button id="syncLogoutBtn" onclick="syncLogout()" class="hidden w-full py-2 rounded-md border border-zinc-200 text-xs font-medium bg-white text-zinc-700 hover:bg-zinc-50 transition">연결 해제</button>
+            <div class="border-t border-neutral-200 pt-3">
+                <label class="text-xs font-medium text-neutral-700 block mb-1">기기 간 동기화</label>
+                <p id="syncStatus" class="text-[11px] text-neutral-500 mb-2 leading-relaxed">확인 중...</p>
+                <input type="password" id="syncPhraseInput" placeholder="동기화 문자 (8자 이상, 모든 기기에서 동일하게)" class="w-full bg-white border border-neutral-300 rounded-md px-2.5 py-1.5 text-xs text-neutral-800 focus:outline-none focus:border-neutral-500 mb-2 shadow-inner">
+                <button id="syncLoginBtn" onclick="syncLogin()" class="btn-paper w-full py-2 rounded-md text-xs font-medium text-neutral-700">연결하기</button>
+                <button id="syncLogoutBtn" onclick="syncLogout()" class="hidden btn-paper w-full py-2 rounded-md text-xs font-medium text-neutral-700">연결 해제</button>
             </div>
 
-            <button onclick="closeModal('settingsModal')" class="w-full py-2 bg-black text-white hover:bg-zinc-800 rounded-md font-medium text-xs transition mt-2">
+            <button onclick="closeModal('settingsModal')" class="btn-paper-dark w-full py-2 rounded-md font-medium text-xs mt-1">
                 확인
             </button>
         </div>
     </div>
 
     <!-- ACCOUNT MANAGER MODAL -->
-    <div id="accountModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white border border-zinc-200 rounded-xl shadow-2xl w-full max-w-md p-5 flex flex-col gap-4">
-            <div class="flex items-center justify-between border-b border-zinc-100 pb-3">
-                <h3 class="text-xs font-bold text-zinc-900 uppercase">계정 관리</h3>
-                <button onclick="closeModal('accountModal')" class="text-zinc-400 hover:text-zinc-700 p-1 rounded-md">
+    <div id="accountModal" class="fixed inset-0 bg-neutral-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-[#F8F8F8] border-2 border-neutral-300 rounded-xl shadow-2xl w-full max-w-md p-5 flex flex-col gap-4">
+            <div class="flex items-center justify-between border-b border-neutral-200 pb-3">
+                <h3 class="text-xs font-bold text-neutral-900 uppercase tracking-wide">계정 관리</h3>
+                <button onclick="closeModal('accountModal')" class="text-neutral-400 hover:text-neutral-700 p-1 rounded-md">
                     <i data-lucide="x" class="w-4 h-4"></i>
                 </button>
             </div>
 
-            <div class="space-y-2.5 border-b border-zinc-100 pb-4">
-                <h4 class="text-xs font-bold text-zinc-800">새 계정 등록</h4>
+            <div class="space-y-2.5 border-b border-neutral-200 pb-4">
+                <h4 class="text-xs font-bold text-neutral-800">새 계정 등록</h4>
                 <div>
-                    <label class="text-[11px] font-medium text-zinc-600 block mb-1">인스턴스 주소</label>
-                    <input type="text" id="addInstanceInput" placeholder="https://misskey.io" class="w-full border border-zinc-200 rounded-md px-2.5 py-1.5 text-xs text-zinc-800 focus:outline-none focus:border-zinc-400">
+                    <label class="text-[11px] font-medium text-neutral-600 block mb-1">인스턴스 주소</label>
+                    <input type="text" id="addInstanceInput" placeholder="https://misskey.io" class="w-full bg-white border border-neutral-300 rounded-md px-2.5 py-1.5 text-xs text-neutral-800 focus:outline-none focus:border-neutral-500 shadow-inner">
                 </div>
                 <div>
-                    <label class="text-[11px] font-medium text-zinc-600 block mb-1">API Access Token (i)</label>
-                    <input type="password" id="addTokenInput" placeholder="토큰 입력" class="w-full border border-zinc-200 rounded-md px-2.5 py-1.5 text-xs text-zinc-800 focus:outline-none focus:border-zinc-400">
+                    <label class="text-[11px] font-medium text-neutral-600 block mb-1">API Access Token (i)</label>
+                    <input type="password" id="addTokenInput" placeholder="토큰 입력" class="w-full bg-white border border-neutral-300 rounded-md px-2.5 py-1.5 text-xs text-neutral-800 focus:outline-none focus:border-neutral-500 shadow-inner">
                 </div>
-                <button onclick="addNewAccount()" id="addAccountBtn" class="w-full py-2 bg-black text-white hover:bg-zinc-800 rounded-md font-medium text-xs transition flex items-center justify-center gap-1.5 mt-1">
+                <button onclick="addNewAccount()" id="addAccountBtn" class="btn-paper-dark w-full py-2 rounded-md font-medium text-xs flex items-center justify-center gap-1.5 mt-1">
                     <i data-lucide="plus" class="w-3.5 h-3.5"></i>
                     <span>토큰 검증 및 계정 등록</span>
                 </button>
             </div>
 
             <div>
-                <h4 class="text-xs font-bold text-zinc-800 mb-2">등록된 계정 목록</h4>
+                <h4 class="text-xs font-bold text-neutral-800 mb-2">등록된 계정 목록</h4>
                 <div id="modalAccountList" class="space-y-1.5 max-h-40 overflow-y-auto">
                     <!-- Accounts list -->
                 </div>
@@ -450,22 +519,22 @@
     </div>
 
     <!-- DIRECT LOOKUP MODAL -->
-    <div id="lookupModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white border border-zinc-200 rounded-xl shadow-2xl w-full max-w-md p-5 flex flex-col gap-3">
-            <div class="flex items-center justify-between border-b border-zinc-100 pb-3">
-                <h3 class="text-xs font-bold text-zinc-900 uppercase">노트 직접 조회</h3>
-                <button onclick="closeModal('lookupModal')" class="text-zinc-400 hover:text-zinc-700 p-1 rounded-md">
+    <div id="lookupModal" class="fixed inset-0 bg-neutral-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-[#F8F8F8] border-2 border-neutral-300 rounded-xl shadow-2xl w-full max-w-md p-5 flex flex-col gap-3">
+            <div class="flex items-center justify-between border-b border-neutral-200 pb-3">
+                <h3 class="text-xs font-bold text-neutral-900 uppercase tracking-wide">노트 직접 조회</h3>
+                <button onclick="closeModal('lookupModal')" class="text-neutral-400 hover:text-neutral-700 p-1 rounded-md">
                     <i data-lucide="x" class="w-4 h-4"></i>
                 </button>
             </div>
 
-            <p class="text-xs text-zinc-600 leading-relaxed">
+            <p class="text-xs text-neutral-600 leading-relaxed">
                 Misskey 노트 URL 또는 노트 ID를 입력하면 타래를 불러옵니다.
             </p>
 
-            <input type="text" id="lookupUrlInput" placeholder="노트 URL 또는 Note ID" class="w-full border border-zinc-200 rounded-md px-2.5 py-1.5 text-xs text-zinc-800 focus:outline-none focus:border-zinc-400">
+            <input type="text" id="lookupUrlInput" placeholder="노트 URL 또는 Note ID" class="w-full bg-white border border-neutral-300 rounded-md px-2.5 py-1.5 text-xs text-neutral-800 focus:outline-none focus:border-neutral-500 shadow-inner">
 
-            <button onclick="executeLookupNote()" id="lookupSubmitBtn" class="w-full py-2 bg-black text-white hover:bg-zinc-800 rounded-md font-medium text-xs transition flex items-center justify-center gap-1.5 mt-1">
+            <button onclick="executeLookupNote()" id="lookupSubmitBtn" class="btn-paper-dark w-full py-2 rounded-md font-medium text-xs flex items-center justify-center gap-1.5 mt-1">
                 <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
                 <span>불러오기</span>
             </button>
@@ -596,8 +665,6 @@
         }
 
         /* ================= Firebase 동기화 (Realtime Database + 방 코드) ================= */
-        // 동기화 대상: 로그인된 계정, 지정 사용자, 숨김 목록, 답장 체크 목록
-        // (글자 크기, 선택된 계정, 타래묶기 설정은 기기별로 따로 유지)
         const firebaseConfig = {
             databaseURL: "https://misskey-answer-thing-default-rtdb.firebaseio.com"
         };
@@ -708,7 +775,7 @@
             if (offsetRef) offsetRef.off();
             roomRef = null; offsetRef = null; aesKey = null; syncConnected = false; currentRoomId = null;
             localStorage.removeItem(SYNC_PHRASE_KEY);
-            localStorage.removeItem(SYNC_JOINED_KEY);   // 다시 연결하면 양쪽 데이터를 합쳐요
+            localStorage.removeItem(SYNC_JOINED_KEY);
             setSyncStatus('연결 안 됨 (이 기기에만 저장됨)');
         }
 
@@ -718,13 +785,11 @@
             aesKey = await deriveAesKey(phrase);
             currentRoomId = await sha256Hex('misskey-mw-room:' + phrase);
 
-            // 기기 시계 차이로 최신 판정이 꼬이지 않도록 서버 시각 보정
             offsetRef = fbDb.ref('.info/serverTimeOffset');
             offsetRef.on('value', snap => { serverOffset = Number(snap.val()) || 0; });
 
             roomRef = fbDb.ref('syncRooms/' + currentRoomId);
             syncConnected = true;
-            // 이 방에 처음 연결하는 기기면, 기존 데이터를 버리지 않고 양쪽을 합침
             firstSync = localStorage.getItem(SYNC_JOINED_KEY) !== currentRoomId;
             setSyncStatus('동기화 중...');
 
@@ -742,7 +807,6 @@
         async function handleRoomSnapshot(snap) {
             const remote = snap.val();
 
-            // 방이 비어 있음 → 이 기기 데이터를 올림
             if (!remote || !remote.blob) {
                 if (!state.updatedAt) { state.updatedAt = nowMs(); saveLocalState(true); }
                 localStorage.setItem(SYNC_JOINED_KEY, currentRoomId);
@@ -789,7 +853,6 @@
             }
         }
 
-        // 처음 연결: 양쪽 데이터를 합쳐서 올림 (기존에 로그인한 계정/지정 사용자가 사라지지 않게)
         function mergeFirstSync(remoteData) {
             const prevActive = state.activeAccountId;
             const localActive = state.accounts.find(a => a.id === state.activeAccountId);
@@ -820,7 +883,7 @@
             state.hiddenNoteIds = remote.hiddenNoteIds || [];
             state.repliedNoteIds = remote.repliedNoteIds || [];
             state.updatedAt = remoteAt || nowMs();
-            saveLocalState(true);          // 되돌려 올리지 않도록 동기화 생략
+            saveLocalState(true);
             refreshAfterSync(prevActive);
         }
 
@@ -850,7 +913,6 @@
             };
             if (immediate) run(); else pushTimer = setTimeout(run, 800);
         }
-        /* ================= /Firebase 동기화 ================= */
 
         function setFontSize(size) {
             state.fontSize = size;
@@ -868,8 +930,8 @@
                 const btn = document.getElementById(`fontSizeBtn-${sz}`);
                 if (btn) {
                     btn.className = (state.fontSize === sz)
-                        ? 'py-2 rounded-md border border-black text-xs font-medium bg-black text-white transition'
-                        : 'py-2 rounded-md border border-zinc-200 text-xs font-medium bg-white text-zinc-700 hover:bg-zinc-50 transition';
+                        ? 'btn-paper-dark py-2 rounded-md text-xs font-medium'
+                        : 'btn-paper py-2 rounded-md text-xs font-medium';
                 }
             });
         }
@@ -904,7 +966,7 @@
                     name: rawNote.user?.name || rawNote.user?.username || '알 수 없음',
                     username: rawNote.user?.username || 'unknown',
                     host: rawNote.user?.host || defaultHost,
-                    avatarUrl: rawNote.user?.avatarUrl || 'https://placehold.co/80x80/000/fff?text=U'
+                    avatarUrl: rawNote.user?.avatarUrl || 'https://placehold.co/80x80/FAF7F0/2B2823?text=U'
                 },
                 text: rawNote.text || '',
                 cw: rawNote.cw || null,
@@ -927,7 +989,6 @@
             return parsed;
         }
 
-        // Recursively find the Root Thread ID of any note
         function getRootThreadId(noteId) {
             let currentId = noteId;
             const visited = new Set();
@@ -1019,7 +1080,6 @@
             const fetchedNotesMap = new Map();
 
             try {
-                // 1. Fetch Target Note
                 const targetNoteRaw = await misskeyApiCall(account.instance, 'notes/show', {
                     i: account.token,
                     noteId: targetNoteId
@@ -1028,7 +1088,6 @@
                 const targetNoteParsed = cacheNoteHierarchy(targetNoteRaw, defaultHost);
                 if (targetNoteParsed) fetchedNotesMap.set(targetNoteParsed.id, targetNoteParsed);
 
-                // 2. Fetch Ancestors via notes/conversation
                 let ancestorsRaw = [];
                 try {
                     ancestorsRaw = await misskeyApiCall(account.instance, 'notes/conversation', {
@@ -1046,7 +1105,6 @@
                         if (p) fetchedNotesMap.set(p.id, p);
                     });
                 } else {
-                    // Fallback Ancestor Fetching recursively via replyId
                     let currParentId = targetNoteParsed?.replyId;
                     let depth = 0;
 
@@ -1070,7 +1128,6 @@
                     }
                 }
 
-                // 3. Fetch Children Replies
                 try {
                     const childrenRaw = await misskeyApiCall(account.instance, 'notes/children', {
                         i: account.token,
@@ -1085,7 +1142,6 @@
                     }
                 } catch (e) {}
 
-                // 4. Sort All Notes Chronologically (Oldest top -> Newest bottom)
                 const sortedThreadNotes = Array.from(fetchedNotesMap.values()).sort((a, b) => {
                     return new Date(a.createdAt) - new Date(b.createdAt);
                 });
@@ -1095,7 +1151,6 @@
                     loading: false
                 };
 
-                // Re-render feed to update thread grouping badge count
                 renderFeed();
                 renderThreadVisualizer();
 
@@ -1108,13 +1163,12 @@
 
         /* ================= 답장 작성: 자동 멘션 / 이어쓰기 / 자동 분할 ================= */
         const MAX_NOTE_LEN = 3000;
-        let lastAutoMention = '';     // 자동으로 넣어 둔 맨 앞 멘션 (사용자가 지우거나 바꾸면 건드리지 않음)
-        let chainReplyTo = null;      // 일부만 전송되고 중단됐을 때, 이어서 답장할 직전 노트 ID
+        let lastAutoMention = '';
+        let chainReplyTo = null;
 
         function buildMentionPrefix(note) {
             if (!note || !note.user) return '';
             const acc = getActiveAccount();
-            // 내 노트에 답장할 때는 멘션을 붙이지 않음
             if (acc && note.user.username === acc.user.username && !note.user.host) return '';
             return '@' + note.user.username + (note.user.host ? '@' + note.user.host : '') + ' ';
         }
@@ -1130,7 +1184,7 @@
                 ta.value = prefix + cur.slice(lastAutoMention.length);
                 lastAutoMention = prefix;
             } else {
-                lastAutoMention = '';     // 이미 쓰던 글이 있으면 건드리지 않음
+                lastAutoMention = '';
             }
             updateReplyCharCounter();
         }
@@ -1140,7 +1194,6 @@
             return noteCache.get(state.selectedNoteId) || state.mentions.find(m => m.id === state.selectedNoteId) || null;
         }
 
-        /* 3000자를 넘으면 문단 → 줄바꿈 → 문장 끝 → 공백 순서로 자연스러운 곳에서 끊음 */
         function splitForLimit(text, limit = MAX_NOTE_LEN) {
             const chunks = [];
             let rest = text.trim();
@@ -1158,7 +1211,7 @@
                 if (cut < minCut) {
                     cut = limit;
                     const code = rest.charCodeAt(cut - 1);
-                    if (code >= 0xD800 && code <= 0xDBFF) cut -= 1;   // 이모지 등이 반으로 잘리지 않게
+                    if (code >= 0xD800 && code <= 0xDBFF) cut -= 1;
                 }
                 chunks.push(rest.slice(0, cut).trim());
                 rest = rest.slice(cut).trim();
@@ -1170,7 +1223,6 @@
         function getReplyTexts() {
             const texts = [];
             const mainVal = document.getElementById('replyTextInput').value;
-            // 자동 입력된 멘션만 남은 상태는 빈 글로 취급
             if (mainVal.trim() && mainVal.trim() !== lastAutoMention.trim()) texts.push(mainVal.trim());
             document.querySelectorAll('#replyExtraParts textarea').forEach(t => {
                 if (t.value.trim()) texts.push(t.value.trim());
@@ -1183,8 +1235,8 @@
             const wrap = document.createElement('div');
             wrap.className = 'relative';
             wrap.innerHTML = `
-                <textarea rows="3" oninput="updateReplyCharCounter()" placeholder="이어서 보낼 노트 (앞 노트에 이어 답장으로 연결돼요)" class="w-full bg-zinc-50 border border-zinc-200 rounded-md p-2.5 pr-7 text-xs text-zinc-800 placeholder-zinc-400 focus:outline-none focus:border-zinc-400 focus:bg-white transition resize-none leading-relaxed"></textarea>
-                <button type="button" onclick="removeReplyPart(this)" title="이 칸 삭제" class="absolute top-1.5 right-2 text-zinc-400 hover:text-zinc-700 text-sm leading-none">×</button>
+                <textarea rows="3" oninput="updateReplyCharCounter()" placeholder="이어서 보낼 노트 (앞 노트에 이어 답장으로 연결돼요)" class="w-full bg-white border border-neutral-300 rounded-md p-2.5 pr-7 text-xs text-neutral-800 placeholder-neutral-400 focus:outline-none focus:border-neutral-500 transition resize-none leading-relaxed shadow-inner"></textarea>
+                <button type="button" onclick="removeReplyPart(this)" title="이 칸 삭제" class="absolute top-2 right-2 text-neutral-400 hover:text-neutral-700 text-sm leading-none p-1">×</button>
             `;
             container.appendChild(wrap);
             const ta = wrap.querySelector('textarea');
@@ -1241,7 +1293,6 @@
                 return;
             }
 
-            // 각 칸을 3000자 단위로 자동 분할 → 순서대로 이어서 전송
             const chunks = texts.flatMap(t => splitForLimit(t));
 
             const cw = state.replyForm.showCw ? document.getElementById('replyCwInput').value.trim() : "";
@@ -1288,14 +1339,13 @@
                 document.getElementById('replyTextInput').value = '';
                 document.getElementById('replyCwInput').value = '';
                 lastAutoMention = '';
-                applyAutoMention(getSelectedNote());   // 같은 상대에게 계속 답장할 수 있게 멘션 다시 채움
+                applyAutoMention(getSelectedNote());
 
                 markSelectedReplied();
                 fetchThreadApi(state.selectedNoteId);
 
             } catch (err) {
                 if (sent > 0) {
-                    // 일부만 전송됨 → 남은 내용을 입력칸에 되돌려 두고, 다음 전송은 마지막 전송된 노트에 이어서
                     const remaining = chunks.slice(sent);
                     clearExtraParts();
                     document.getElementById('replyTextInput').value = remaining[0] || '';
@@ -1344,7 +1394,7 @@
                     user: {
                         name: userInfo.name || userInfo.username,
                         username: userInfo.username,
-                        avatarUrl: userInfo.avatarUrl || 'https://placehold.co/80x80/000/fff?text=U'
+                        avatarUrl: userInfo.avatarUrl || 'https://placehold.co/80x80/FAF7F0/2B2823?text=U'
                     }
                 };
 
@@ -1434,8 +1484,8 @@
                 const btn = document.getElementById(`filterTab-${cat}`);
                 if (btn) {
                     btn.className = (state.filters.category === cat)
-                        ? 'px-2.5 py-1 text-xs font-medium rounded-md bg-black text-white transition'
-                        : 'px-2.5 py-1 text-xs font-medium rounded-md bg-white border border-zinc-200 text-zinc-600 hover:bg-zinc-100 transition';
+                        ? 'btn-paper-dark px-2.5 py-1 text-xs font-medium rounded-md transition'
+                        : 'btn-paper px-2.5 py-1 text-xs font-medium rounded-md text-neutral-700 transition';
                 }
             });
 
@@ -1443,8 +1493,8 @@
             if (toggleBtn) {
                 toggleBtn.textContent = state.filters.threadGrouping ? '타래묶기: ON' : '타래묶기: OFF';
                 toggleBtn.className = state.filters.threadGrouping
-                    ? 'px-2.5 py-1 text-xs font-medium rounded-md bg-black text-white transition'
-                    : 'px-2.5 py-1 text-xs font-medium rounded-md bg-white border border-zinc-200 text-zinc-600 hover:bg-zinc-100 transition';
+                    ? 'btn-paper-dark px-2.5 py-1 text-xs font-medium rounded-md transition'
+                    : 'btn-paper px-2.5 py-1 text-xs font-medium rounded-md text-neutral-700 transition';
             }
         }
 
@@ -1461,7 +1511,6 @@
             renderFeed();
         }
 
-        /* Group mentions by Root Thread ID */
         function groupMentionsByThread(mentionsList) {
             if (!state.filters.threadGrouping) {
                 return mentionsList.map(m => ({ item: m, count: 1 }));
@@ -1512,8 +1561,9 @@
 
             if (groupedList.length === 0) {
                 container.innerHTML = `
-                    <div class="h-32 flex items-center justify-center text-xs text-zinc-400 font-medium border border-dashed border-zinc-200 rounded-lg p-4 text-center">
-                        수신된 멘션 항목이 없습니다.
+                    <div class="h-36 flex flex-col items-center justify-center text-xs text-neutral-400 font-medium border-2 border-dashed border-neutral-300 rounded-lg p-4 text-center bg-neutral-100/30">
+                        <i data-lucide="inbox" class="w-6 h-6 mb-1.5 opacity-40"></i>
+                        <span>수신된 멘션 항목이 없습니다.</span>
                     </div>
                 `;
                 return;
@@ -1526,28 +1576,28 @@
                 const fullHandle = `${m.user.username}@${m.user.host || ''}`;
 
                 return `
-                    <div onclick="selectTargetNote('${m.id}')" class="mention-card p-3 cursor-pointer ${isSelected ? 'selected-card' : ''} ${isReplied ? 'opacity-70' : ''}">
-                        <div class="flex items-start justify-between gap-2 mb-1.5">
+                    <div onclick="selectTargetNote('${m.id}')" class="mention-card p-3 cursor-pointer ${isSelected ? 'selected-card' : ''} ${isReplied ? 'opacity-65' : ''}">
+                        <div class="flex items-start justify-between gap-2 mb-2">
                             <div class="flex items-center gap-2 min-w-0">
-                                <img src="${m.user.avatarUrl}" class="w-6 h-6 rounded-full border border-zinc-200 object-cover shrink-0">
+                                <img src="${m.user.avatarUrl}" class="w-6 h-6 rounded-full border border-neutral-300 object-cover shrink-0">
                                 <div class="min-w-0">
                                     <div class="flex items-center gap-1.5">
                                         <span class="card-name truncate">${escapeHtml(m.user.name)}</span>
-                                        
-                                        ${count > 1 ? `<span class="px-1.5 py-0.5 bg-zinc-100 text-zinc-700 text-[10px] font-medium rounded shrink-0">타래 ${count}개</span>` : ''}
+                                        ${count > 1 ? `<span class="px-1.5 py-0.5 bg-neutral-200/70 text-neutral-700 text-[10px] font-semibold rounded shrink-0">타래 ${count}개</span>` : ''}
+                                        ${isDesignated ? `<span class="stamp-badge shrink-0">지정</span>` : ''}
                                     </div>
                                     <span class="card-handle block truncate">@${escapeHtml(fullHandle)}</span>
                                 </div>
                             </div>
 
                             <div class="flex items-center gap-1.5 shrink-0">
-                                <span class="text-[11px] font-normal text-zinc-400">${formatRelativeTime(m.createdAt)}</span>
+                                <span class="text-[11px] font-normal text-neutral-400">${formatRelativeTime(m.createdAt)}</span>
                                 <button type="button" onclick="event.stopPropagation(); toggleRepliedNote('${m.id}')" title="${isReplied ? '답장 체크 해제' : '답장 완료로 체크'}" aria-pressed="${isReplied}" class="reply-check ${isReplied ? 'checked' : ''}">✓</button>
                             </div>
                         </div>
 
                         ${m.cw ? `
-                            <div class="mb-2 p-1.5 rounded border border-amber-200 text-[11px] font-medium bg-amber-50 text-amber-900">
+                            <div class="mb-2 p-1.5 rounded border border-neutral-400 text-[11px] font-medium bg-neutral-100 text-neutral-800">
                                 CW: ${escapeHtml(m.cw)}
                             </div>
                         ` : ''}
@@ -1556,13 +1606,13 @@
                             ${renderNoteText(m.text)}
                         </p>
 
-                        <div class="pt-2 border-t border-zinc-100 flex items-center justify-between text-[11px]" onclick="event.stopPropagation()">
-                            <button onclick="toggleDesignatedUser('${fullHandle}')" class="px-2 py-0.5 rounded border ${isDesignated ? 'bg-black text-white border-black' : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50'} font-medium transition">
+                        <div class="pt-2 border-t border-neutral-200/80 flex items-center justify-between text-[11px]" onclick="event.stopPropagation()">
+                            <button onclick="toggleDesignatedUser('${fullHandle}')" class="btn-paper px-2 py-0.5 rounded font-medium transition ${isDesignated ? 'bg-neutral-800 text-white border-neutral-800' : ''}">
                                 ${isDesignated ? '지정 해제' : '지정 추가'}
                             </button>
 
                             <div class="flex items-center gap-1.5">
-                                <button onclick="toggleHideNote('${m.id}')" class="px-2 py-0.5 rounded border border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50 font-medium transition">
+                                <button onclick="toggleHideNote('${m.id}')" class="btn-paper px-2 py-0.5 rounded font-medium transition text-neutral-600">
                                     ${state.hiddenNoteIds.includes(m.id) ? '숨김 해제' : '숨김'}
                                 </button>
                             </div>
@@ -1578,8 +1628,9 @@
             const container = document.getElementById('threadVisualizerContainer');
             if (!state.selectedNoteId) {
                 container.innerHTML = `
-                    <div class="h-32 flex items-center justify-center text-xs text-zinc-400 font-medium border border-dashed border-zinc-200 rounded-lg p-4 text-center">
-                        좌측 알림 목록에서 멘션을 선택해 주세요.
+                    <div class="h-40 flex flex-col items-center justify-center text-xs text-neutral-400 font-medium border-2 border-dashed border-neutral-300 rounded-lg p-4 text-center bg-neutral-100/30">
+                        <i data-lucide="book-open" class="w-6 h-6 mb-1.5 opacity-40"></i>
+                        <span>좌측 알림 목록에서 멘션 노트를 선택해 주세요.</span>
                     </div>
                 `;
                 return;
@@ -1587,8 +1638,9 @@
 
             if (state.threadData.loading) {
                 container.innerHTML = `
-                    <div class="h-32 flex items-center justify-center text-xs text-zinc-400 font-medium border border-dashed border-zinc-200 rounded-lg p-4 text-center">
-                        대화 타래를 불러오는 중입니다...
+                    <div class="h-40 flex flex-col items-center justify-center text-xs text-neutral-400 font-medium border-2 border-dashed border-neutral-300 rounded-lg p-4 text-center bg-neutral-100/30">
+                        <i data-lucide="loader" class="w-6 h-6 mb-1.5 opacity-40 animate-spin"></i>
+                        <span>대화 타래를 불러오는 중입니다...</span>
                     </div>
                 `;
                 return;
@@ -1597,31 +1649,31 @@
             const threadNotes = state.threadData.notes;
             if (!threadNotes || threadNotes.length === 0) {
                 container.innerHTML = `
-                    <div class="h-32 flex items-center justify-center text-xs text-zinc-400 font-medium border border-dashed border-zinc-200 rounded-lg p-4 text-center">
-                        타래 내용이 없습니다.
+                    <div class="h-40 flex flex-col items-center justify-center text-xs text-neutral-400 font-medium border-2 border-dashed border-neutral-300 rounded-lg p-4 text-center bg-neutral-100/30">
+                        <span>타래 내용이 없습니다.</span>
                     </div>
                 `;
                 return;
             }
 
-            let html = '<div class="space-y-3 pb-2">';
+            let html = '<div class="space-y-3.5 pb-2">';
 
             threadNotes.forEach((note) => {
                 const isCurrentTarget = note.id === state.selectedNoteId;
 
                 html += `
                     <div class="relative">
-                        <div class="thread-note p-3.5 rounded-lg border ${isCurrentTarget ? 'thread-note-current border-zinc-900 ring-1 ring-zinc-900' : 'border-zinc-200'} text-zinc-800 text-xs">
-                            <div class="flex items-center justify-between mb-2 pb-1.5 border-b border-zinc-100">
+                        <div class="thread-note p-3.5 ${isCurrentTarget ? 'thread-note-current' : ''}">
+                            <div class="flex items-center justify-between mb-2 pb-1.5 border-b border-neutral-200">
                                 <div class="flex items-center gap-2 min-w-0">
-                                    <img src="${note.user?.avatarUrl || 'https://placehold.co/80x80/000/fff?text=U'}" class="w-5 h-5 rounded-full border border-zinc-200 object-cover shrink-0">
-                                    <span class="font-semibold text-zinc-900 truncate">${escapeHtml(note.user?.name || note.user?.username)}</span>
+                                    <img src="${note.user?.avatarUrl || 'https://placehold.co/80x80/FAF7F0/2B2823?text=U'}" class="w-5 h-5 rounded-full border border-neutral-300 object-cover shrink-0">
+                                    <span class="font-bold text-neutral-900 truncate text-xs">${escapeHtml(note.user?.name || note.user?.username)}</span>
                                     <span class="card-handle truncate">@${escapeHtml(note.user?.username)}</span>
                                 </div>
-                                <span class="text-[11px] font-normal text-zinc-400 shrink-0">${formatRelativeTime(note.createdAt)}</span>
+                                <span class="text-[11px] font-normal text-neutral-400 shrink-0">${formatRelativeTime(note.createdAt)}</span>
                             </div>
 
-                            ${note.cw ? `<div class="p-2 mb-2 rounded bg-amber-50 border border-amber-200 text-amber-900 font-medium text-[11px]">CW: ${escapeHtml(note.cw)}</div>` : ''}
+                            ${note.cw ? `<div class="p-2 mb-2 rounded bg-neutral-100 border border-neutral-400 text-neutral-800 font-medium text-[11px]">CW: ${escapeHtml(note.cw)}</div>` : ''}
 
                             <p class="card-body whitespace-pre-wrap">${renderNoteText(note.text)}</p>
                         </div>
@@ -1635,15 +1687,6 @@
             setTimeout(() => {
                 container.scrollTop = container.scrollHeight;
             }, 50);
-        }
-
-        function insertUserMention(userHandle) {
-            const textarea = document.getElementById('replyTextInput');
-            const mentionTag = `@${userHandle.replace(/@+$/, '')} `;
-            if (!textarea.value.includes(mentionTag)) {
-                textarea.value = mentionTag + textarea.value;
-                updateReplyCharCounter();
-            }
         }
 
         function selectTargetNote(noteId) {
@@ -1753,7 +1796,6 @@
             renderFeed();
         }
 
-        // 미답장 대상: 숨김/답장 완료가 아니고, 지정 사용자가 있으면 지정 사용자의 멘션만
         function isUnrepliedTarget(m) {
             if (state.hiddenNoteIds.includes(m.id)) return false;
             if (state.repliedNoteIds.includes(m.id)) return false;
@@ -1807,21 +1849,21 @@
         function renderModalAccountList() {
             const container = document.getElementById('modalAccountList');
             if (state.accounts.length === 0) {
-                container.innerHTML = `<p class="text-xs text-zinc-400 font-medium py-1">등록된 계정이 없습니다.</p>`;
+                container.innerHTML = `<p class="text-xs text-neutral-400 font-medium py-1">등록된 계정이 없습니다.</p>`;
                 return;
             }
 
             container.innerHTML = state.accounts.map(acc => `
-                <div class="flex items-center justify-between p-2.5 rounded-lg border border-zinc-200 bg-white">
+                <div class="flex items-center justify-between p-2.5 rounded-lg border border-neutral-300 bg-white shadow-sm">
                     <div class="min-w-0">
-                        <p class="text-xs font-semibold text-zinc-900 truncate">@${acc.user.username}</p>
-                        <p class="text-[11px] text-zinc-500 truncate">${acc.instance}</p>
+                        <p class="text-xs font-bold text-neutral-900 truncate">@${acc.user.username}</p>
+                        <p class="text-[11px] text-neutral-500 truncate">${acc.instance}</p>
                     </div>
                     <div class="flex items-center gap-1.5">
-                        <button onclick="selectActiveAccount('${acc.id}')" class="px-2.5 py-1 rounded text-xs font-medium transition ${acc.id === state.activeAccountId ? 'bg-black text-white' : 'bg-zinc-100 text-zinc-700 hover:bg-zinc-200'}">
+                        <button onclick="selectActiveAccount('${acc.id}')" class="px-2.5 py-1 rounded text-xs font-medium transition ${acc.id === state.activeAccountId ? 'btn-paper-dark' : 'btn-paper'}">
                             ${acc.id === state.activeAccountId ? '선택됨' : '선택'}
                         </button>
-                        <button onclick="removeAccount('${acc.id}')" class="px-2.5 py-1 rounded border border-zinc-200 text-zinc-600 hover:bg-zinc-50 text-xs font-medium transition">
+                        <button onclick="removeAccount('${acc.id}')" class="btn-paper px-2.5 py-1 rounded text-xs font-medium transition text-neutral-600">
                             삭제
                         </button>
                     </div>
@@ -1858,7 +1900,7 @@
             const container = document.getElementById('toastContainer');
             const toast = document.createElement('div');
             
-            toast.className = 'px-3.5 py-2 rounded-lg border border-zinc-200 bg-white text-zinc-800 text-xs font-medium shadow-lg pointer-events-auto transition transform translate-y-2 opacity-0';
+            toast.className = 'px-3.5 py-2 rounded-lg border-2 border-neutral-300 bg-[#F8F8F8] text-neutral-900 text-xs font-medium shadow-xl pointer-events-auto transition transform translate-y-2 opacity-0 flex items-center gap-2';
             toast.textContent = message;
 
             container.appendChild(toast);
@@ -1873,7 +1915,6 @@
             }, 2500);
         }
 
-        // 본문 속 @아이디는 연한 색으로 감싸 본문이 더 도드라지게
         function renderNoteText(text) {
             return escapeHtml(text || '').replace(/(^|[\s(（「])(@[A-Za-z0-9_]+(?:@[A-Za-z0-9._-]*[A-Za-z0-9])?)/g, '$1<span class="mention-tag">$2</span>');
         }
