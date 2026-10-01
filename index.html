@@ -8,15 +8,18 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="theme-color" content="#F2F2F2">
+    <meta name="theme-color" content="#FBFCFD">
     <meta name="apple-mobile-web-app-title" content="MW">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="icon-192.png">
     <link rel="icon" type="image/png" href="icon-192.png">
     
-    <title>Misskey Mention Writer - Paper Edition</title>
+    <title>MW</title>
 
-    <!-- Pretendard Font CDN (Preserved) -->
+    <!-- Galmuri pixel font -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/galmuri/dist/galmuri.css">
+
+    <!-- Pretendard Font CDN (fallback) -->
     <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
     
     <!-- Tailwind CSS CDN -->
@@ -30,15 +33,19 @@
                         serif: ['Georgia', 'Cambria', 'Times New Roman', 'serif']
                     },
                     colors: {
+                        neutral: {
+                            50: '#F7F8FA', 100: '#EDEFF3', 200: '#DADDE4', 300: '#CBCED7', 400: '#868A99',
+                            500: '#6F7382', 600: '#555968', 700: '#424652', 800: '#2C2F39', 900: '#1B1D25', 950: '#12131A'
+                        },
                         paper: {
-                            base: '#F2F2F2',
-                            card: '#F8F8F8',
-                            bright: '#FFFFFF',
-                            line: '#E0E0E0',
-                            border: '#D4D4D4',
-                            ink: '#262626',
-                            sub: '#666666',
-                            muted: '#9A9A9A',
+                            base: '#E6E8ED',
+                            card: '#F0F2F5',
+                            bright: '#F7F8FA',
+                            line: '#D8DBE2',
+                            border: '#CBCED7',
+                            ink: '#22252E',
+                            sub: '#555968',
+                            muted: '#7F8392',
                             stamp: '#8C3A32'
                         }
                     }
@@ -54,13 +61,13 @@
         :root {
             --app-font-size: 14px;
             --fs-scale: 1;   /* 글자 크기 배율 (선택값 / 14px) */
-            --paper-bg: #F2F2F2;
-            --paper-card-bg: #F8F8F8;
-            --paper-line-color: #E0E0E0;
-            --paper-border-color: #D4D4D4;
-            --ink-text: #262626;
-            --grain-texture: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.25  0 0 0 0 0.25  0 0 0 0 0.25  0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url%28%23n%29'/%3E%3C/svg%3E");
-            --grid-line-pattern: linear-gradient(to bottom, transparent 95%, rgba(190, 190, 190, 0.25) 95%);
+            --paper-bg: #E6E8ED;
+            --paper-card-bg: #F0F2F5;
+            --paper-line-color: #D8DBE2;
+            --paper-border-color: #CBCED7;
+            --ink-text: #22252E;
+            --grain-texture: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.2  0 0 0 0 0.22  0 0 0 0 0.3  0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url%28%23n%29'/%3E%3C/svg%3E");
+            --grid-line-pattern: linear-gradient(to bottom, transparent 95%, rgba(150, 154, 168, 0.16) 95%);
         }
 
         html, body {
@@ -90,11 +97,11 @@
             background: transparent;
         }
         ::-webkit-scrollbar-thumb {
-            background: #CCCCCC;
+            background: #C3C6CF;
             border-radius: 4px;
         }
         ::-webkit-scrollbar-thumb:hover {
-            background: #AAAAAA;
+            background: #9195A3;
         }
 
         /* Mobile Viewport Fix */
@@ -110,10 +117,10 @@
 
         /* Header & Panel Transparency for Layered Paper Feel */
         body > header {
-            background-color: rgba(242, 242, 242, 0.95) !important;
+            background-color: rgba(230, 232, 237, 0.95) !important;
             backdrop-filter: blur(8px);
             border-bottom: 2px solid var(--paper-border-color);
-            box-shadow: 0 1px 4px rgba(30, 30, 30, 0.04);
+            box-shadow: 0 1px 4px rgba(34, 37, 46, 0.04);
         }
 
         /* Paper Note Cards */
@@ -122,22 +129,22 @@
             background-image: var(--grain-texture);
             border: 1px solid var(--paper-border-color);
             border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(40, 40, 40, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+            box-shadow: none;
             transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
             position: relative;
         }
 
         .mention-card:hover {
-            border-color: #B0B0B0;
+            border-color: #9EA1AE;
             transform: translateY(-1px);
-            box-shadow: 0 4px 10px rgba(40, 40, 40, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9);
-            background-color: #FCFCFC;
+            box-shadow: none;
+            background-color: #F4F5F8;
         }
 
         .mention-card.selected-card {
-            border-color: #262626;
-            box-shadow: 0 0 0 1.5px #262626, 0 6px 14px rgba(38, 38, 38, 0.12);
-            background-color: #FFFFFF;
+            border-color: #22252E;
+            box-shadow: 0 0 0 1.5px #22252E;
+            background-color: #F7F8FA;
         }
 
         /* Subtle Corner fold visual indicator for selected note */
@@ -150,7 +157,7 @@
             height: 0;
             border-style: solid;
             border-width: 0 14px 14px 0;
-            border-color: transparent #262626 transparent transparent;
+            border-color: transparent #22252E transparent transparent;
             border-bottom-left-radius: 2px;
         }
 
@@ -172,37 +179,37 @@
 
         /* Thread Note Cards */
         .thread-note {
-            background-color: #F8F8F8;
+            background-color: #F0F2F5;
             background-image: var(--grain-texture);
             border: 1px solid var(--paper-border-color);
-            box-shadow: 0 1px 4px rgba(40, 40, 40, 0.04);
+            box-shadow: none;
             border-radius: 8px;
         }
 
         .thread-note-current {
-            border-color: #262626;
-            background-color: #FFFFFF;
-            box-shadow: 0 4px 12px rgba(38, 38, 38, 0.09), 0 0 0 1px #262626;
+            border-color: #22252E;
+            background-color: #F7F8FA;
+            box-shadow: 0 0 0 1px #22252E;
         }
 
         /* Quote (renote) block */
         .quote-block {
             border: 1px solid var(--paper-border-color);
-            border-left: 3px solid #AAAAAA;
+            border-left: 3px solid #9195A3;
             border-radius: 6px;
-            background-color: rgba(255, 255, 255, 0.6);
+            background-color: rgba(255, 255, 255, 0.35);
             padding: 6px 9px;
             margin-top: 2px;
             margin-bottom: 8px;
         }
-        .quote-block .quote-text { font-size: calc(12px * var(--fs-scale)); line-height: 1.55; color: #3C3C3C; }
-        .quote-missing { font-size: calc(11px * var(--fs-scale)); color: #858585; border-style: dashed; border-left-style: dashed; }
+        .quote-block .quote-text { font-size: calc(12px * var(--fs-scale)); line-height: 1.55; color: #30333D; }
+        .quote-missing { font-size: calc(11px * var(--fs-scale)); color: #6F7382; border-style: dashed; border-left-style: dashed; }
 
         /* Ink & Text Typography Hierarchy */
-        .card-name { font-size: calc(13px * var(--fs-scale)); font-weight: 600; color: #262626; }
-        .card-handle { font-size: calc(11px * var(--fs-scale)); font-weight: 400; color: #858585; }
-        .card-body { font-size: calc(13px * var(--fs-scale)); line-height: 1.6; font-weight: 400; color: #1F1F1F; }
-        .mention-tag { color: #8A8A8A; font-weight: 500; }
+        .card-name { font-size: calc(13px * var(--fs-scale)); font-weight: 600; color: #22252E; }
+        .card-handle { font-size: calc(11px * var(--fs-scale)); font-weight: 400; color: #6F7382; }
+        .card-body { font-size: calc(13px * var(--fs-scale)); line-height: 1.6; font-weight: 400; color: #1B1D25; }
+        .mention-tag { color: #7A7E8D; font-weight: 500; }
 
         /* Stamp Badge Style */
         .stamp-badge {
@@ -221,66 +228,195 @@
             background-color: rgba(140, 58, 50, 0.04);
         }
 
-        /* Reply Checkmark Button (Paper Ink Check) */
+        /* Reply check: 간결한 V자 (누르면 초록색) */
         .reply-check {
             width: 22px;
             height: 22px;
-            border-radius: 50%;
-            border: 1.5px solid #B8B8B8;
+            padding: 0;
+            border: none;
             background: transparent;
-            color: #B8B8B8;
-            font-size: 11px;
-            line-height: 1;
-            font-weight: 700;
+            color: var(--ink-text);
             display: inline-flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            transition: all 0.15s ease;
+            transition: color 0.15s ease, transform 0.1s ease, opacity 0.15s ease;
         }
-        .reply-check:hover {
-            border-color: #262626;
-            color: #262626;
-            background: rgba(38, 38, 38, 0.05);
-        }
-        .reply-check.checked {
-            background: #262626;
-            border-color: #262626;
-            color: #F8F8F8;
-        }
+        .reply-check svg { width: 16px; height: 16px; }
+        .reply-check:hover { opacity: 0.65; }
+        .reply-check:active { transform: scale(0.88); }
+        .reply-check.checked { color: #1FA35C; }
 
         /* Tactile Paper Button Effects */
         .btn-paper {
-            background-color: #F8F8F8;
+            background-color: #F0F2F5;
             border: 1px solid var(--paper-border-color);
             color: var(--ink-text);
-            box-shadow: 0 1px 2px rgba(40, 40, 40, 0.06);
+            box-shadow: 0 1px 2px rgba(34, 37, 46, 0.06);
             transition: all 0.15s ease;
         }
         .btn-paper:hover {
-            background-color: #FFFFFF;
-            border-color: #B0B0B0;
-            box-shadow: 0 2px 4px rgba(40, 40, 40, 0.09);
+            background-color: #F7F8FA;
+            border-color: #9EA1AE;
+            box-shadow: 0 2px 4px rgba(34, 37, 46, 0.09);
         }
         .btn-paper-dark {
-            background-color: #262626;
-            border: 1px solid #262626;
-            color: #F8F8F8;
-            box-shadow: 0 2px 4px rgba(38, 38, 38, 0.15);
+            background-color: #22252E;
+            border: 1px solid #22252E;
+            color: #F0F2F5;
+            box-shadow: 0 2px 4px rgba(34, 37, 46, 0.15);
             transition: all 0.15s ease;
         }
         .btn-paper-dark:hover {
-            background-color: #3C3C3C;
-            box-shadow: 0 3px 6px rgba(38, 38, 38, 0.22);
+            background-color: #30333D;
+            box-shadow: 0 3px 6px rgba(34, 37, 46, 0.22);
+        }
+
+        /* 모바일: 스크롤 래퍼는 레이아웃에 영향 없음 (기존처럼 타래 + 하단 고정 작성창) */
+        #threadScrollArea { display: contents; }
+
+        /* PC: 타래와 작성창을 한 스크롤 영역에 두고, 작성창을 노트 바로 아래에 붙임 */
+        @media (min-width: 768px) {
+            #threadScrollArea {
+                display: block;
+                flex: 1 1 0%;
+                min-height: 0;
+                overflow-y: auto;
+                padding: 16px;
+                background-image: var(--grain-texture), var(--grid-line-pattern);
+                background-size: auto, 100% 24px;
+            }
+            #threadVisualizerContainer {
+                flex: none !important;
+                overflow: visible !important;
+                padding: 0 !important;
+                background-image: none !important;
+            }
+            #threadScrollArea .composer-box {
+                width: 100%;
+                max-width: 700px;
+                margin: 8px auto 0;
+                border: 1px solid var(--paper-border-color);
+                border-radius: 8px;
+                max-height: none !important;
+                overflow: visible !important;
+                box-shadow: none !important;
+            }
+        }
+
+        /* PC: 알림창 글씨는 대화 타래보다 작게 */
+        @media (min-width: 768px) {
+            #sideNotificationPanel .card-name { font-size: calc(12px * var(--fs-scale)); }
+            #sideNotificationPanel .card-handle { font-size: calc(10px * var(--fs-scale)); }
+            #sideNotificationPanel .card-body { font-size: calc(12px * var(--fs-scale)); line-height: 1.5; }
+            #sideNotificationPanel .quote-text { font-size: calc(11px * var(--fs-scale)); }
+            #sideNotificationPanel .mention-card .text-\[11px\] { font-size: max(9px, calc(10px * var(--fs-scale))) !important; }
         }
 
         /* Composer Sticky Paper Box */
         .composer-box {
-            background-color: #F8F8F8;
+            background-color: #F0F2F5;
             background-image: var(--grain-texture);
             border-top: 2px solid var(--paper-border-color);
-            box-shadow: 0 -4px 12px rgba(30, 30, 30, 0.05);
+            box-shadow: 0 -4px 12px rgba(34, 37, 46, 0.05);
         }
+
+        /* =====================================================
+           RETRO: Classic Mac (System 7) skin
+           - 폰트 교체: --font-retro(본문) / --font-title(제목)만 바꾸면 됨
+           ===================================================== */
+        :root {
+            --font-retro: 'Galmuri11', 'Pretendard Variable', Pretendard, sans-serif;
+            --font-small: 'Galmuri9', 'Galmuri11', 'Pretendard Variable', sans-serif;
+            --font-title: 'Galmuri14', 'Galmuri11', 'Pretendard Variable', sans-serif;
+            --mac-ink: #12131A;
+            --mac-paper: #FBFCFD;
+            --grain-texture: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='2' height='2'%3E%3Crect width='2' height='2' fill='%23F0F2F6'/%3E%3Crect width='1' height='1' fill='%23CDD1DB'/%3E%3Crect x='1' y='1' width='1' height='1' fill='%23CDD1DB'/%3E%3C/svg%3E");
+            --grid-line-pattern: none;
+        }
+        html, body, button, input, textarea, select { font-family: var(--font-retro) !important; -webkit-font-smoothing: none; }
+        html, body { color: var(--mac-ink); image-rendering: pixelated; }
+        body { font-size: calc(12px * var(--fs-scale)); }
+        .text-xs, .text-sm { font-size: calc(12px * var(--fs-scale)) !important; line-height: 1.5 !important; }
+        .text-\[11px\], .text-\[10px\], .card-handle, .stamp-badge, .mention-card .text-\[11px\] { font-family: var(--font-small) !important; font-size: calc(10px * var(--fs-scale)) !important; }
+        .card-name { font-size: calc(12px * var(--fs-scale)); color: var(--mac-ink); }
+        .card-body { font-size: calc(12px * var(--fs-scale)); line-height: 1.7; color: var(--mac-ink); }
+        .quote-block .quote-text { font-size: calc(12px * var(--fs-scale)); }
+        h3, .font-bold.uppercase { font-family: var(--font-title) !important; letter-spacing: 0 !important; text-transform: none !important; }
+        @media (min-width: 768px) {
+            input, textarea, select { font-size: calc(12px * var(--fs-scale)); }
+            #sideNotificationPanel .card-name,
+            #sideNotificationPanel .card-body,
+            #sideNotificationPanel .quote-text { font-family: var(--font-small) !important; font-size: calc(10px * var(--fs-scale)) !important; line-height: 1.6; }
+            #sideNotificationPanel .card-name { font-weight: 700; }
+        }
+
+        /* 모서리: 전부 각지게, 버튼만 살짝 둥글게 */
+        .rounded, .rounded-md, .rounded-lg, .rounded-xl, .rounded-full { border-radius: 0 !important; }
+        img.rounded-full { border: 1px solid var(--mac-ink) !important; }
+
+        /* 상단 메뉴바 */
+        html body > header { background-color: var(--mac-paper) !important; background-image: none !important; backdrop-filter: none; border-bottom: 2px solid var(--mac-ink); box-shadow: none; }
+        body > header .bg-neutral-800 { background: var(--mac-ink); border: 2px solid var(--mac-ink); border-radius: 0; box-shadow: 2px 2px 0 #868A99; font-family: var(--font-title); }
+
+        /* 경계선: 먹색 1px, 안쪽 구분선은 점선 */
+        .border-neutral-300 { border-color: var(--mac-ink) !important; }
+        .border-neutral-200, .border-neutral-200\/80 { border-color: #868A99 !important; border-style: dotted !important; }
+        .bg-neutral-100\/40, .bg-neutral-100\/30, .bg-neutral-200\/70 { background-color: var(--mac-paper) !important; }
+
+        /* 카드 / 타래 노트 / 작성창: 흰 종이 + 딱딱한 그림자 */
+        .mention-card, .thread-note, .quote-block {
+            background-color: var(--mac-paper) !important; background-image: none !important;
+            border: 1px solid var(--mac-ink) !important; border-radius: 0 !important;
+        }
+        .mention-card, .thread-note { box-shadow: 2px 2px 0 var(--mac-ink) !important; transform: none !important; }
+        .mention-card:hover { background-color: #fff !important; transform: none !important; }
+        .mention-card.selected-card, .thread-note-current { box-shadow: 2px 2px 0 var(--mac-ink), inset 0 0 0 2px var(--mac-ink) !important; }
+        .mention-card.selected-card::after { display: none; }
+        .quote-block { border-left: 3px solid var(--mac-ink) !important; box-shadow: none !important; }
+        .composer-box { background-color: var(--mac-paper) !important; background-image: none !important; border-top: 2px solid var(--mac-ink); box-shadow: none; }
+        #threadScrollArea .composer-box { border: 1px solid var(--mac-ink) !important; box-shadow: 2px 2px 0 var(--mac-ink) !important; }
+
+        /* 버튼: 흰 버튼 → 누르면/올리면 반전 */
+        .btn-paper, .btn-paper-dark { border: 1px solid var(--mac-ink) !important; border-radius: 5px !important; box-shadow: none !important; }
+        .btn-paper { background-color: var(--mac-paper); color: var(--mac-ink); }
+        .btn-paper-dark { background-color: var(--mac-ink); color: var(--mac-paper); }
+        .btn-paper:hover, .btn-paper:active { background-color: var(--mac-ink); color: var(--mac-paper); }
+        .btn-paper-dark:hover { background-color: #3a3d4a; }
+        .btn-paper:hover *, .btn-paper-dark * { color: inherit !important; }
+        .btn-paper:disabled, .btn-paper-dark:disabled { opacity: .5; }
+
+        /* 입력칸 */
+        input[type=text], input[type=password], textarea, select {
+            background-color: #fff !important; border: 1px solid var(--mac-ink) !important; border-radius: 0 !important; box-shadow: none !important; color: var(--mac-ink);
+        }
+        input:focus, textarea:focus, select:focus { outline: 2px solid var(--mac-ink); outline-offset: -3px; }
+        input[type=checkbox] { accent-color: var(--mac-ink); border-radius: 0 !important; }
+
+        /* 모달: 맥 창 (줄무늬 타이틀바 + 딱딱한 그림자) */
+        #settingsModal > div, #accountModal > div, #lookupModal > div, #designatedModal > div {
+            background-color: var(--mac-paper) !important; border: 2px solid var(--mac-ink) !important; border-radius: 0 !important; box-shadow: 4px 4px 0 var(--mac-ink) !important;
+        }
+        #settingsModal > div > div:first-child, #accountModal > div > div:first-child, #lookupModal > div > div:first-child, #designatedModal > div > div:first-child {
+            background: repeating-linear-gradient(to bottom, var(--mac-ink) 0 1px, transparent 1px 3px);
+            border: 1px solid var(--mac-ink) !important; border-style: solid !important; padding: 3px 6px !important;
+        }
+        #settingsModal h3, #accountModal h3, #lookupModal h3, #designatedModal h3 { background: var(--mac-paper); padding: 0 8px; }
+        #settingsModal button[onclick^="closeModal"], #accountModal button[onclick^="closeModal"], #lookupModal button[onclick^="closeModal"], #designatedModal button[onclick^="closeModal"] { background: var(--mac-paper); border: 1px solid var(--mac-ink); padding: 1px !important; color: var(--mac-ink) !important; }
+        .bg-neutral-900\/40 { background-color: rgba(18, 19, 26, 0.35) !important; backdrop-filter: none !important; }
+        #modalAccountList > div, #designatedList > div { background: #fff !important; border: 1px solid var(--mac-ink) !important; box-shadow: none !important; }
+
+        /* 토스트 */
+        #toastContainer > div { background: var(--mac-paper) !important; border: 2px solid var(--mac-ink) !important; border-radius: 0 !important; box-shadow: 2px 2px 0 var(--mac-ink) !important; }
+
+        /* 지정 배지: 반전 라벨 */
+        .stamp-badge { color: var(--mac-paper); background: var(--mac-ink); border: 1px solid var(--mac-ink); border-radius: 0; transform: none; opacity: 1; letter-spacing: 0; }
+        .mention-tag { color: #424652; }
+
+        /* 스크롤바: 클래식 맥 */
+        ::-webkit-scrollbar { width: 14px; height: 14px; }
+        ::-webkit-scrollbar-track { background: var(--grain-texture); border-left: 1px solid var(--mac-ink); }
+        ::-webkit-scrollbar-thumb, ::-webkit-scrollbar-thumb:hover { background: var(--mac-paper); border: 1px solid var(--mac-ink); border-radius: 0; }
     </style>
 </head>
 <body class="text-neutral-900 flex flex-col antialiased select-none" style="height:100vh;height:100dvh;">
@@ -291,7 +427,6 @@
             <div class="w-6 h-6 rounded border-1.5 border-neutral-800 flex items-center justify-center font-bold text-xs bg-neutral-800 text-neutral-100 shadow-sm">
                 M
             </div>
-            <h1 class="text-xs font-bold tracking-wider text-neutral-900 uppercase font-sans">MISSKEY MENTION WRITER</h1>
         </div>
 
         <div class="flex items-center gap-1.5">
@@ -299,6 +434,12 @@
             <button onclick="openModal('settingsModal')" class="btn-paper px-2.5 py-1.5 rounded-md text-neutral-700 text-xs font-medium flex items-center gap-1.5">
                 <i data-lucide="settings" class="w-3.5 h-3.5 text-neutral-500"></i>
                 <span class="hidden sm:inline">설정</span>
+            </button>
+
+            <!-- Designated Users Button -->
+            <button onclick="openDesignatedManager()" class="btn-paper px-2.5 py-1.5 rounded-md text-neutral-700 text-xs font-medium flex items-center gap-1.5">
+                <i data-lucide="users" class="w-3.5 h-3.5 text-neutral-500"></i>
+                <span class="hidden sm:inline">지정 인원</span>
             </button>
 
             <!-- Direct Note Lookup Button -->
@@ -348,7 +489,7 @@
             <div class="p-2.5 border-b border-neutral-300 flex items-center gap-2 shrink-0">
                 <div class="relative flex-1">
                     <i data-lucide="search" class="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-neutral-400"></i>
-                    <input type="text" id="feedSearchInput" oninput="handleFeedSearch()" placeholder="검색어 또는 사용자" class="w-full bg-neutral-50/80 border border-neutral-300 rounded-md pl-8 pr-2.5 py-1 text-xs text-neutral-800 placeholder-neutral-400 focus:outline-none focus:border-neutral-500 focus:bg-white transition shadow-inner">
+                    <input type="text" id="feedSearchInput" oninput="handleFeedSearch()" placeholder="검색어 또는 사용자" class="w-full bg-neutral-50/80 border border-neutral-300 rounded-md pl-8 pr-2.5 py-1 text-xs text-neutral-800 placeholder-neutral-400 focus:outline-none focus:border-neutral-500 focus:bg-neutral-50 transition shadow-inner">
                 </div>
                 <button onclick="manualFetchMentions()" class="btn-paper-dark px-2.5 py-1 rounded-md text-xs font-medium transition shrink-0 flex items-center gap-1" title="새로고침">
                     <i data-lucide="refresh-cw" class="w-3 h-3"></i>
@@ -356,7 +497,7 @@
             </div>
 
             <!-- Mentions Scrollable Container -->
-            <div id="mentionsFeedContainer" class="flex-1 overflow-y-auto p-2.5 space-y-2.5">
+            <div id="mentionsFeedContainer" class="flex-1 overflow-y-auto p-2.5 space-y-1.5">
                 <!-- Mention cards dynamically rendered here -->
             </div>
 
@@ -392,11 +533,12 @@
             </div>
 
             <!-- Conversation Thread Scroll Area -->
+            <div id="threadScrollArea">
             <div id="threadVisualizerContainer" class="flex-1 min-h-0 overflow-y-auto p-4 space-y-3 notebook-ruled">
                 <!-- Thread messages rendered here chronologically -->
             </div>
 
-            <!-- FIXED BOTTOM COMPOSER BOX -->
+            <!-- COMPOSER BOX: 모바일은 하단 고정, PC는 타래 노트 바로 아래 -->
             <div class="composer-box p-3.5 shrink-0 flex flex-col gap-2.5 shadow-md max-h-[65%] overflow-y-auto">
                 
                 <div class="flex items-center justify-between text-xs border-b border-neutral-200 pb-2">
@@ -417,11 +559,11 @@
 
                 <!-- CW Input Field -->
                 <div id="cwInputContainer" class="hidden">
-                    <input type="text" id="replyCwInput" placeholder="CW 경고 문구 입력 (내용 가리기)" class="w-full bg-white border border-neutral-300 rounded-md px-2.5 py-1.5 text-xs text-neutral-800 placeholder-neutral-400 focus:outline-none focus:border-neutral-500 transition shadow-inner">
+                    <input type="text" id="replyCwInput" placeholder="CW 경고 문구 입력 (내용 가리기)" class="w-full bg-neutral-50 border border-neutral-300 rounded-md px-2.5 py-1.5 text-xs text-neutral-800 placeholder-neutral-400 focus:outline-none focus:border-neutral-500 transition shadow-inner">
                 </div>
 
                 <!-- Main Reply Text Area -->
-                <textarea id="replyTextInput" rows="3" oninput="updateReplyCharCounter()" placeholder="답장 내용을 작성하세요 (종이 위에 쓰듯 편하게 입력하세요)" class="w-full bg-white border border-neutral-300 rounded-md p-2.5 text-xs text-neutral-800 placeholder-neutral-400 focus:outline-none focus:border-neutral-500 transition resize-none leading-relaxed shadow-inner"></textarea>
+                <textarea id="replyTextInput" rows="3" oninput="updateReplyCharCounter()" placeholder="답장 내용을 작성하세요 (종이 위에 쓰듯 편하게 입력하세요)" class="w-full bg-neutral-50 border border-neutral-300 rounded-md p-2.5 text-xs text-neutral-800 placeholder-neutral-400 focus:outline-none focus:border-neutral-500 transition resize-none leading-relaxed shadow-inner"></textarea>
 
                 <!-- + 이어쓰기로 추가한 입력칸 -->
                 <div id="replyExtraParts" class="flex flex-col gap-2"></div>
@@ -459,12 +601,13 @@
                     </div>
                 </div>
             </div>
+            </div>
         </main>
     </div>
 
     <!-- SETTINGS MODAL (Font Size Settings & Firebase Sync) -->
     <div id="settingsModal" class="fixed inset-0 bg-neutral-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-[#F8F8F8] border-2 border-neutral-300 rounded-xl shadow-2xl w-full max-w-sm p-5 flex flex-col gap-4 relative">
+        <div class="bg-[#F0F2F5] border-2 border-neutral-300 rounded-xl shadow-2xl w-full max-w-sm p-5 flex flex-col gap-4 relative">
             <div class="flex items-center justify-between border-b border-neutral-200 pb-3">
                 <h3 class="text-xs font-bold text-neutral-900 uppercase tracking-wide">설정</h3>
                 <button onclick="closeModal('settingsModal')" class="text-neutral-400 hover:text-neutral-700 p-1 rounded-md">
@@ -493,7 +636,7 @@
             <div class="border-t border-neutral-200 pt-3">
                 <label class="text-xs font-medium text-neutral-700 block mb-1">기기 간 동기화</label>
                 <p id="syncStatus" class="text-[11px] text-neutral-500 mb-2 leading-relaxed">확인 중...</p>
-                <input type="password" id="syncPhraseInput" placeholder="동기화 문자 (8자 이상, 모든 기기에서 동일하게)" class="w-full bg-white border border-neutral-300 rounded-md px-2.5 py-1.5 text-xs text-neutral-800 focus:outline-none focus:border-neutral-500 mb-2 shadow-inner">
+                <input type="password" id="syncPhraseInput" placeholder="동기화 문자 (8자 이상, 모든 기기에서 동일하게)" class="w-full bg-neutral-50 border border-neutral-300 rounded-md px-2.5 py-1.5 text-xs text-neutral-800 focus:outline-none focus:border-neutral-500 mb-2 shadow-inner">
                 <button id="syncLoginBtn" onclick="syncLogin()" class="btn-paper w-full py-2 rounded-md text-xs font-medium text-neutral-700">연결하기</button>
                 <button id="syncLogoutBtn" onclick="syncLogout()" class="hidden btn-paper w-full py-2 rounded-md text-xs font-medium text-neutral-700">연결 해제</button>
             </div>
@@ -506,7 +649,7 @@
 
     <!-- ACCOUNT MANAGER MODAL -->
     <div id="accountModal" class="fixed inset-0 bg-neutral-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-[#F8F8F8] border-2 border-neutral-300 rounded-xl shadow-2xl w-full max-w-md p-5 flex flex-col gap-4">
+        <div class="bg-[#F0F2F5] border-2 border-neutral-300 rounded-xl shadow-2xl w-full max-w-md p-5 flex flex-col gap-4">
             <div class="flex items-center justify-between border-b border-neutral-200 pb-3">
                 <h3 class="text-xs font-bold text-neutral-900 uppercase tracking-wide">계정 관리</h3>
                 <button onclick="closeModal('accountModal')" class="text-neutral-400 hover:text-neutral-700 p-1 rounded-md">
@@ -518,11 +661,11 @@
                 <h4 class="text-xs font-bold text-neutral-800">새 계정 등록</h4>
                 <div>
                     <label class="text-[11px] font-medium text-neutral-600 block mb-1">인스턴스 주소</label>
-                    <input type="text" id="addInstanceInput" placeholder="https://misskey.io" class="w-full bg-white border border-neutral-300 rounded-md px-2.5 py-1.5 text-xs text-neutral-800 focus:outline-none focus:border-neutral-500 shadow-inner">
+                    <input type="text" id="addInstanceInput" placeholder="https://misskey.io" class="w-full bg-neutral-50 border border-neutral-300 rounded-md px-2.5 py-1.5 text-xs text-neutral-800 focus:outline-none focus:border-neutral-500 shadow-inner">
                 </div>
                 <div>
                     <label class="text-[11px] font-medium text-neutral-600 block mb-1">API Access Token (i)</label>
-                    <input type="password" id="addTokenInput" placeholder="토큰 입력" class="w-full bg-white border border-neutral-300 rounded-md px-2.5 py-1.5 text-xs text-neutral-800 focus:outline-none focus:border-neutral-500 shadow-inner">
+                    <input type="password" id="addTokenInput" placeholder="토큰 입력" class="w-full bg-neutral-50 border border-neutral-300 rounded-md px-2.5 py-1.5 text-xs text-neutral-800 focus:outline-none focus:border-neutral-500 shadow-inner">
                 </div>
                 <button onclick="addNewAccount()" id="addAccountBtn" class="btn-paper-dark w-full py-2 rounded-md font-medium text-xs flex items-center justify-center gap-1.5 mt-1">
                     <i data-lucide="plus" class="w-3.5 h-3.5"></i>
@@ -539,9 +682,37 @@
         </div>
     </div>
 
+    <!-- DESIGNATED USERS MODAL -->
+    <div id="designatedModal" class="fixed inset-0 bg-neutral-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-[#F0F2F5] border-2 border-neutral-300 rounded-xl shadow-2xl w-full max-w-md p-5 flex flex-col gap-3">
+            <div class="flex items-center justify-between border-b border-neutral-200 pb-3">
+                <h3 class="text-xs font-bold text-neutral-900 uppercase tracking-wide">지정 인원 관리</h3>
+                <button onclick="closeModal('designatedModal')" class="text-neutral-400 hover:text-neutral-700 p-1 rounded-md">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <p class="text-xs text-neutral-600 leading-relaxed">
+                여기에 등록한 사람의 멘션만 알림창에 보여요. 아이디(예: user) 또는 user@서버주소 형식으로 입력하세요.
+            </p>
+
+            <div class="flex items-center gap-2">
+                <input type="text" id="designatedAddInput" onkeydown="if(event.key==='Enter'){event.preventDefault();addDesignatedFromInput();}" placeholder="@user@misskey.io" class="flex-1 min-w-0 bg-neutral-50 border border-neutral-300 rounded-md px-2.5 py-1.5 text-xs text-neutral-800 focus:outline-none focus:border-neutral-500 shadow-inner">
+                <button onclick="addDesignatedFromInput()" class="btn-paper-dark px-3 py-1.5 rounded-md font-medium text-xs shrink-0">추가</button>
+            </div>
+
+            <div id="designatedList" class="space-y-1.5 max-h-52 overflow-y-auto"></div>
+
+            <label class="flex items-center gap-1.5 text-neutral-700 text-xs cursor-pointer font-medium border-t border-neutral-200 pt-3">
+                <input type="checkbox" id="onlyDesignatedCheck" onchange="toggleOnlyDesignated()" class="rounded border-neutral-300 text-neutral-800 focus:ring-0">
+                <span>지정된 인원의 멘션만 알림창에 표시</span>
+            </label>
+        </div>
+    </div>
+
     <!-- DIRECT LOOKUP MODAL -->
     <div id="lookupModal" class="fixed inset-0 bg-neutral-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-[#F8F8F8] border-2 border-neutral-300 rounded-xl shadow-2xl w-full max-w-md p-5 flex flex-col gap-3">
+        <div class="bg-[#F0F2F5] border-2 border-neutral-300 rounded-xl shadow-2xl w-full max-w-md p-5 flex flex-col gap-3">
             <div class="flex items-center justify-between border-b border-neutral-200 pb-3">
                 <h3 class="text-xs font-bold text-neutral-900 uppercase tracking-wide">노트 직접 조회</h3>
                 <button onclick="closeModal('lookupModal')" class="text-neutral-400 hover:text-neutral-700 p-1 rounded-md">
@@ -553,7 +724,7 @@
                 Misskey 노트 URL 또는 노트 ID를 입력하면 타래를 불러옵니다.
             </p>
 
-            <input type="text" id="lookupUrlInput" placeholder="노트 URL 또는 Note ID" class="w-full bg-white border border-neutral-300 rounded-md px-2.5 py-1.5 text-xs text-neutral-800 focus:outline-none focus:border-neutral-500 shadow-inner">
+            <input type="text" id="lookupUrlInput" placeholder="노트 URL 또는 Note ID" class="w-full bg-neutral-50 border border-neutral-300 rounded-md px-2.5 py-1.5 text-xs text-neutral-800 focus:outline-none focus:border-neutral-500 shadow-inner">
 
             <button onclick="executeLookupNote()" id="lookupSubmitBtn" class="btn-paper-dark w-full py-2 rounded-md font-medium text-xs flex items-center justify-center gap-1.5 mt-1">
                 <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
@@ -581,7 +752,7 @@
             repliedNoteIds: [],    // 답장 완료 체크한 멘션 ID
             selectedNoteId: null,
             threadData: { notes: [], loading: false },
-            filters: { category: 'all', searchQuery: '', threadGrouping: true },
+            filters: { category: 'all', searchQuery: '', threadGrouping: true, onlyDesignated: true },
             replyForm: { cw: '', showCw: false },
             fontSize: '14px',
             mobileView: 'list',   // 'list' | 'workspace'
@@ -631,6 +802,9 @@
                     state.repliedNoteIds = parsed.repliedNoteIds || [];
                     state.fontSize = parsed.fontSize || '14px';
                     state.updatedAt = parsed.updatedAt || 0;
+                    if (typeof parsed.onlyDesignated === 'boolean') {
+                        state.filters.onlyDesignated = parsed.onlyDesignated;
+                    }
                     if (typeof parsed.threadGrouping === 'boolean') {
                         state.filters.threadGrouping = parsed.threadGrouping;
                     }
@@ -649,7 +823,8 @@
                 hiddenNoteIds: state.hiddenNoteIds,
                 repliedNoteIds: state.repliedNoteIds,
                 fontSize: state.fontSize,
-                threadGrouping: state.filters.threadGrouping
+                threadGrouping: state.filters.threadGrouping,
+                onlyDesignated: state.filters.onlyDesignated
             };
         }
 
@@ -968,6 +1143,11 @@
             });
         }
 
+        // 인스턴스 주소에서 프로토콜과 끝의 '/'를 제거해 순수 호스트만 반환
+        function getInstanceHost(account) {
+            return String(account.instance || '').trim().replace(/^https?:\/\//i, '').replace(/\/.*$/, '');
+        }
+
         function getActiveAccount() {
             return state.accounts.find(a => a.id === state.activeAccountId) || null;
         }
@@ -998,7 +1178,7 @@
                     name: rawNote.user?.name || rawNote.user?.username || '알 수 없음',
                     username: rawNote.user?.username || 'unknown',
                     host: rawNote.user?.host || defaultHost,
-                    avatarUrl: rawNote.user?.avatarUrl || 'https://placehold.co/80x80/FAF7F0/2B2823?text=U'
+                    avatarUrl: rawNote.user?.avatarUrl || 'https://placehold.co/80x80/E6E8ED/22252E?text=U'
                 },
                 text: rawNote.text || '',
                 cw: rawNote.cw || null,
@@ -1013,7 +1193,7 @@
                         name: rawNote.renote.user?.name || rawNote.renote.user?.username || '알 수 없음',
                         username: rawNote.renote.user?.username || 'unknown',
                         host: rawNote.renote.user?.host || defaultHost,
-                        avatarUrl: rawNote.renote.user?.avatarUrl || 'https://placehold.co/80x80/F8F8F8/262626?text=U'
+                        avatarUrl: rawNote.renote.user?.avatarUrl || 'https://placehold.co/80x80/F0F2F5/22252E?text=U'
                     },
                     text: rawNote.renote.text || '',
                     cw: rawNote.renote.cw || null,
@@ -1061,7 +1241,7 @@
             const account = getActiveAccount();
             if (!account) return;
 
-            const defaultHost = account.instance.replace(/^https?:\/\//, '');
+            const defaultHost = getInstanceHost(account);
             const payload = { i: account.token, limit: 30 };
             if (untilId) payload.untilId = untilId;
 
@@ -1158,7 +1338,7 @@
             const account = getActiveAccount();
             if (!account) return;
 
-            const defaultHost = account.instance.replace(/^https?:\/\//, '');
+            const defaultHost = getInstanceHost(account);
             state.threadData.loading = true;
             renderThreadVisualizer();
 
@@ -1320,7 +1500,7 @@
             const wrap = document.createElement('div');
             wrap.className = 'relative';
             wrap.innerHTML = `
-                <textarea rows="3" oninput="updateReplyCharCounter()" placeholder="이어서 보낼 노트 (앞 노트에 이어 답장으로 연결돼요)" class="w-full bg-white border border-neutral-300 rounded-md p-2.5 pr-7 text-xs text-neutral-800 placeholder-neutral-400 focus:outline-none focus:border-neutral-500 transition resize-none leading-relaxed shadow-inner"></textarea>
+                <textarea rows="3" oninput="updateReplyCharCounter()" placeholder="이어서 보낼 노트 (앞 노트에 이어 답장으로 연결돼요)" class="w-full bg-neutral-50 border border-neutral-300 rounded-md p-2.5 pr-7 text-xs text-neutral-800 placeholder-neutral-400 focus:outline-none focus:border-neutral-500 transition resize-none leading-relaxed shadow-inner"></textarea>
                 <button type="button" onclick="removeReplyPart(this)" title="이 칸 삭제" class="absolute top-2 right-2 text-neutral-400 hover:text-neutral-700 text-sm leading-none p-1">×</button>
             `;
             container.appendChild(wrap);
@@ -1479,7 +1659,7 @@
                     user: {
                         name: userInfo.name || userInfo.username,
                         username: userInfo.username,
-                        avatarUrl: userInfo.avatarUrl || 'https://placehold.co/80x80/FAF7F0/2B2823?text=U'
+                        avatarUrl: userInfo.avatarUrl || 'https://placehold.co/80x80/E6E8ED/22252E?text=U'
                     }
                 };
 
@@ -1555,7 +1735,7 @@
         }
 
         function renderFilters() {
-            const allCount = state.mentions.length;
+            const allCount = state.mentions.filter(passesDesignatedOnly).length;
             const designatedCount = state.mentions.filter(m => isDesignatedUser(m.user)).length;
             const hiddenCount = state.hiddenNoteIds.length;
             const unrepliedCount = state.mentions.filter(isUnrepliedTarget).length;
@@ -1633,6 +1813,7 @@
                 if (state.filters.category === 'hidden' && !state.hiddenNoteIds.includes(m.id)) return false;
                 if (state.filters.category === 'unreplied' && !isUnrepliedTarget(m)) return false;
                 if (state.filters.category !== 'hidden' && state.hiddenNoteIds.includes(m.id)) return false;
+                if (state.filters.category !== 'hidden' && !passesDesignatedOnly(m)) return false;
 
                 if (searchQ) {
                     const matchText = (m.text || '').toLowerCase().includes(searchQ);
@@ -1669,7 +1850,6 @@
                                 <div class="min-w-0">
                                     <div class="flex items-center gap-1.5">
                                         <span class="card-name truncate">${escapeHtml(m.user.name)}</span>
-                                        ${m.renoteId && !m.replyId ? `<span class="px-1.5 py-0.5 border border-neutral-400 text-neutral-700 text-[10px] font-semibold rounded shrink-0">인용</span>` : ''}
                                         ${count > 1 ? `<span class="px-1.5 py-0.5 bg-neutral-200/70 text-neutral-700 text-[10px] font-semibold rounded shrink-0">타래 ${count}개</span>` : ''}
                                         ${isDesignated ? `<span class="stamp-badge shrink-0">지정</span>` : ''}
                                     </div>
@@ -1679,7 +1859,7 @@
 
                             <div class="flex items-center gap-1.5 shrink-0">
                                 <span class="text-[11px] font-normal text-neutral-400">${formatRelativeTime(m.createdAt)}</span>
-                                <button type="button" onclick="event.stopPropagation(); toggleRepliedNote('${m.id}')" title="${isReplied ? '답장 체크 해제' : '답장 완료로 체크'}" aria-pressed="${isReplied}" class="reply-check ${isReplied ? 'checked' : ''}">✓</button>
+                                <button type="button" onclick="event.stopPropagation(); toggleRepliedNote('${m.id}')" title="${isReplied ? '답장 체크 해제' : '답장 완료로 체크'}" aria-pressed="${isReplied}" class="reply-check ${isReplied ? 'checked' : ''}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.5 5.5L20 6.5"/></svg></button>
                             </div>
                         </div>
 
@@ -1695,10 +1875,7 @@
 
                         ${renderQuoteBlock(m, true)}
 
-                        <div class="pt-2 border-t border-neutral-200/80 flex items-center justify-between text-[11px]" onclick="event.stopPropagation()">
-                            <button onclick="toggleDesignatedUser('${fullHandle}')" class="btn-paper px-2 py-0.5 rounded font-medium transition ${isDesignated ? 'bg-neutral-800 text-white border-neutral-800' : ''}">
-                                ${isDesignated ? '지정 해제' : '지정 추가'}
-                            </button>
+                        <div class="pt-2 border-t border-neutral-200/80 flex items-center justify-end text-[11px]" onclick="event.stopPropagation()">
 
                             <div class="flex items-center gap-1.5">
                                 <button onclick="toggleHideNote('${m.id}')" class="btn-paper px-2 py-0.5 rounded font-medium transition text-neutral-600">
@@ -1745,17 +1922,17 @@
                 return;
             }
 
-            let html = '<div class="space-y-3.5 pb-2">';
+            let html = '<div class="space-y-1.5 pb-1 w-full max-w-[700px] mx-auto">';
 
             threadNotes.forEach((note) => {
                 const isCurrentTarget = note.id === state.selectedNoteId;
 
                 html += `
                     <div class="relative">
-                        <div class="thread-note p-3.5 ${isCurrentTarget ? 'thread-note-current' : ''}">
+                        <div class="thread-note p-3 ${isCurrentTarget ? 'thread-note-current' : ''}">
                             <div class="flex items-center justify-between mb-2 pb-1.5 border-b border-neutral-200">
                                 <div class="flex items-center gap-2 min-w-0">
-                                    <img src="${note.user?.avatarUrl || 'https://placehold.co/80x80/FAF7F0/2B2823?text=U'}" class="w-5 h-5 rounded-full border border-neutral-300 object-cover shrink-0">
+                                    <img src="${note.user?.avatarUrl || 'https://placehold.co/80x80/E6E8ED/22252E?text=U'}" class="w-5 h-5 rounded-full border border-neutral-300 object-cover shrink-0">
                                     <span class="font-bold text-neutral-900 truncate text-xs">${escapeHtml(note.user?.name || note.user?.username)}</span>
                                     <span class="card-handle truncate">@${escapeHtml(note.user?.username)}</span>
                                 </div>
@@ -1776,7 +1953,8 @@
             container.innerHTML = html;
 
             setTimeout(() => {
-                container.scrollTop = container.scrollHeight;
+                const scroller = window.innerWidth >= 768 ? document.getElementById('threadScrollArea') : container;
+                scroller.scrollTop = scroller.scrollHeight;
             }, 50);
         }
 
@@ -1854,14 +2032,14 @@
             const usernameOnly = userObj.username.toLowerCase();
 
             return state.designatedUsers.some(u => {
-                const clean = u.toLowerCase().replace(/^@/, '');
+                const clean = u.toLowerCase().replace(/^@/, '').replace(/\/+$/, '');
                 return clean === fullHandle || clean === usernameOnly;
             });
         }
 
         function toggleDesignatedUser(handle) {
             const cleanHandle = handle.toLowerCase().replace(/^@/, '');
-            const index = state.designatedUsers.findIndex(u => u.toLowerCase().replace(/^@/, '') === cleanHandle);
+            const index = state.designatedUsers.findIndex(u => u.toLowerCase().replace(/^@/, '').replace(/\/+$/, '') === cleanHandle);
 
             if (index > -1) {
                 state.designatedUsers.splice(index, 1);
@@ -1872,6 +2050,66 @@
             }
 
             saveLocalState();
+            renderFilters();
+            renderFeed();
+        }
+
+        /* ================= 지정 인원 관리 ================= */
+        function passesDesignatedOnly(m) {
+            if (!state.filters.onlyDesignated) return true;
+            if (state.designatedUsers.length === 0) return true;   // 지정한 사람이 없으면 전체 표시
+            return isDesignatedUser(m.user);
+        }
+
+        function openDesignatedManager() {
+            renderDesignatedModal();
+            openModal('designatedModal');
+        }
+
+        function renderDesignatedModal() {
+            const list = document.getElementById('designatedList');
+            const chk = document.getElementById('onlyDesignatedCheck');
+            if (chk) chk.checked = state.filters.onlyDesignated;
+            if (!list) return;
+            if (state.designatedUsers.length === 0) {
+                list.innerHTML = '<p class="text-xs text-neutral-400 font-medium py-1">지정된 인원이 없어요. (없으면 모든 멘션이 표시돼요)</p>';
+                return;
+            }
+            list.innerHTML = state.designatedUsers.map((u, i) => `
+                <div class="flex items-center justify-between p-2 rounded-lg border border-neutral-300 bg-neutral-50 shadow-sm">
+                    <span class="text-xs font-medium text-neutral-900 truncate">@${escapeHtml(u)}</span>
+                    <button onclick="removeDesignatedUser(${i})" class="btn-paper px-2.5 py-1 rounded text-xs font-medium text-neutral-600 shrink-0">삭제</button>
+                </div>
+            `).join('');
+        }
+
+        function addDesignatedFromInput() {
+            const input = document.getElementById('designatedAddInput');
+            const clean = input.value.trim().replace(/^@/, '').replace(/\/+$/, '').toLowerCase();
+            if (!clean) { showToast("추가할 아이디를 입력하세요.", "warning"); return; }
+            if (state.designatedUsers.some(u => u.toLowerCase() === clean)) {
+                showToast("이미 지정된 인원입니다.", "info");
+                return;
+            }
+            state.designatedUsers.push(clean);
+            input.value = '';
+            saveLocalState();
+            renderDesignatedModal();
+            renderFilters();
+            renderFeed();
+        }
+
+        function removeDesignatedUser(index) {
+            state.designatedUsers.splice(index, 1);
+            saveLocalState();
+            renderDesignatedModal();
+            renderFilters();
+            renderFeed();
+        }
+
+        function toggleOnlyDesignated() {
+            state.filters.onlyDesignated = document.getElementById('onlyDesignatedCheck').checked;
+            saveLocalState(true);   // 기기별 보기 설정: 동기화하지 않음
             renderFilters();
             renderFeed();
         }
@@ -1945,7 +2183,7 @@
             }
 
             container.innerHTML = state.accounts.map(acc => `
-                <div class="flex items-center justify-between p-2.5 rounded-lg border border-neutral-300 bg-white shadow-sm">
+                <div class="flex items-center justify-between p-2.5 rounded-lg border border-neutral-300 bg-neutral-50 shadow-sm">
                     <div class="min-w-0">
                         <p class="text-xs font-bold text-neutral-900 truncate">@${acc.user.username}</p>
                         <p class="text-[11px] text-neutral-500 truncate">${acc.instance}</p>
@@ -1991,7 +2229,7 @@
             const container = document.getElementById('toastContainer');
             const toast = document.createElement('div');
             
-            toast.className = 'px-3.5 py-2 rounded-lg border-2 border-neutral-300 bg-[#F8F8F8] text-neutral-900 text-xs font-medium shadow-xl pointer-events-auto transition transform translate-y-2 opacity-0 flex items-center gap-2';
+            toast.className = 'px-3.5 py-2 rounded-lg border-2 border-neutral-300 bg-[#F0F2F5] text-neutral-900 text-xs font-medium shadow-xl pointer-events-auto transition transform translate-y-2 opacity-0 flex items-center gap-2';
             toast.textContent = message;
 
             container.appendChild(toast);
