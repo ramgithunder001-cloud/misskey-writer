@@ -453,7 +453,12 @@
         let fbDb = null, roomRef = null, aesKey = null, pushTimer = null, syncConnected = false;
 
         // ---- 암호화 (방 코드로 만든 키로 데이터 전체를 AES-GCM 암호화) ----
-        const toB64 = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
+        const toB64 = buf => {
+            const bytes = new Uint8Array(buf);
+            let bin = '';
+            for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+            return btoa(bin);
+        };
         const fromB64 = str => Uint8Array.from(atob(str), c => c.charCodeAt(0));
 
         async function sha256Hex(text) {
@@ -554,6 +559,7 @@
                 if (remoteAt > (state.updatedAt || 0)) {
                     try {
                         applyRemote(JSON.parse(await decryptText(remote.blob)), remoteAt);
+                        setSyncStatus('동기화됨 · ' + new Date().toLocaleTimeString('ko-KR'));
                     } catch (e) {
                         console.error('decrypt error', e);
                         setSyncStatus('동기화 오류: 데이터를 해석하지 못했어요');
@@ -563,8 +569,16 @@
                 }
             }, err => {
                 console.error('sync error', err);
-                setSyncStatus('동기화 오류: ' + (err.code || err.message));
+                showSyncError(err);
             });
+        }
+
+        function showSyncError(e) {
+            const code = e && (e.code || e.message) || 'unknown';
+            let hint = '';
+            if (String(code).includes('PERMISSION_DENIED')) hint = ' — Firebase Realtime Database 규칙에서 syncRooms 읽기/쓰기가 막혀 있어요';
+            setSyncStatus('동기화 오류: ' + code + hint);
+            showToast('동기화 오류: ' + code, 'error');
         }
 
         function applyRemote(remote, remoteAt) {
@@ -600,8 +614,10 @@
                 try {
                     const blob = await encryptText(JSON.stringify(data));
                     await roomRef.set({ updatedAt: data.updatedAt || Date.now(), blob });
+                    setSyncStatus('동기화됨 · ' + new Date().toLocaleTimeString('ko-KR'));
                 } catch (e) {
                     console.error('push error', e);
+                    showSyncError(e);
                 }
             };
             if (immediate) run(); else pushTimer = setTimeout(run, 800);
