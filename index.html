@@ -479,6 +479,64 @@
             .side-resizer:hover, body.resizing-side .side-resizer { background: var(--mac-ink); opacity: .35; }
             body.resizing-side { cursor: col-resize; user-select: none; }
         }
+
+        /* =====================================================
+           v7: 버튼 높이 통일 / 메뉴·탭 글꼴 / 타래 본문 글꼴 / 작성칸
+           ===================================================== */
+        /* 움돋으 폰트: 기기에 설치돼 있으면 사용. 웹폰트 주소가 있으면 src 끝에 url('주소') format('woff2') 를 추가 */
+        @font-face { font-family: 'Umdoteu'; src: local('Umdoteu'), local('움돋으'); font-display: swap; }
+        :root { --body-font: var(--font-retro); }
+
+        /* 3) 멘션 타래 본문만 선택한 글꼴 (알림창·메뉴·작성칸은 영향 없음) */
+        #threadVisualizerContainer .card-body,
+        #threadVisualizerContainer .quote-text { font-family: var(--body-font) !important; }
+
+        /* 2) 메뉴·탭 글자는 갈무리9로 통일 */
+        .menu-item, .menu-item *,
+        header.app-header button, header.app-header button *,
+        [id^="filterTab-"], [id^="filterTab-"] *,
+        #antennaBar button, .logo-btn {
+            font-family: 'Galmuri9', 'Galmuri11', 'Pretendard Variable', sans-serif !important;
+        }
+
+        /* 1) 버튼 높이: 같은 자리의 버튼끼리 같은 높이 */
+        button.btn-paper:not(.hidden), button.btn-paper-dark:not(.hidden) {
+            display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+            box-sizing: border-box; line-height: 1; white-space: nowrap; vertical-align: middle;
+            padding-top: 0 !important; padding-bottom: 0 !important;
+        }
+        /* 상단 메뉴줄(PC) */
+        header.app-header button.btn-paper { height: 32px; }
+        /* 알림창: 탭 줄 / 안테나 줄 / 검색·새로고침 줄 */
+        #sideNotificationPanel button.btn-paper:not(.hidden),
+        #sideNotificationPanel button.btn-paper-dark:not(.hidden) { height: 28px; }
+        #sideNotificationPanel .logo-btn { width: 28px; height: 28px; }
+        #feedSearchInput { height: 28px; padding-top: 0 !important; padding-bottom: 0 !important; }
+        /* 알림 카드 안의 작은 버튼 */
+        #sideNotificationPanel .mention-card button.btn-paper { height: 24px; }
+        /* 작성창 버튼 + 공개 범위 선택 */
+        .composer-box button.btn-paper:not(.hidden),
+        .composer-box button.btn-paper-dark:not(.hidden),
+        .composer-box select.btn-paper { height: 30px; }
+        .composer-box select.btn-paper { padding-top: 0 !important; padding-bottom: 0 !important; }
+        #sendReplyBtn { padding-left: 14px; padding-right: 14px; }
+        /* 설정·계정·지정 인원·조회 창 */
+        #settingsModal button.btn-paper:not(.hidden), #settingsModal button.btn-paper-dark:not(.hidden),
+        #accountModal button.btn-paper:not(.hidden), #accountModal button.btn-paper-dark:not(.hidden),
+        #designatedModal button.btn-paper:not(.hidden), #designatedModal button.btn-paper-dark:not(.hidden),
+        #lookupModal button.btn-paper:not(.hidden), #lookupModal button.btn-paper-dark:not(.hidden) { height: 32px; }
+        #modalAccountList button.btn-paper, #modalAccountList button.btn-paper-dark,
+        #designatedList button.btn-paper { height: 28px !important; }
+        #designatedAddInput { height: 32px; padding-top: 0 !important; padding-bottom: 0 !important; }
+
+        /* 4) 글쓰는 칸은 넓게, 버튼 줄은 촘촘하게 */
+        .composer-box { padding: 10px 12px !important; row-gap: 8px !important; }
+        #replyTextInput { min-height: 124px; }
+        #replyExtraParts textarea { min-height: 100px; }
+        @media (min-width: 768px) {
+            #replyTextInput { min-height: 176px; }
+            #replyExtraParts textarea { min-height: 124px; }
+        }
     </style>
 </head>
 <body class="text-neutral-900 flex flex-col antialiased select-none" style="height:100vh;height:100dvh;">
@@ -581,16 +639,6 @@
         <!-- MAIN PRIMARY WORKSPACE: THREAD VIEW & COMPOSER -->
         <main id="mainWorkspacePanel" class="hidden md:flex flex-1 flex-col h-full relative overflow-hidden z-20">
             
-            <!-- Mobile Workspace Top Navigation Bar -->
-            <div class="md:hidden p-3 border-b border-neutral-300 flex items-center justify-between shrink-0">
-                <div class="flex items-center gap-2">
-                    <button onclick="switchToMobileList()" class="md:hidden btn-paper-dark px-2.5 py-1 text-xs font-medium rounded-md flex items-center gap-1">
-                        <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
-                        <span>알림 목록</span>
-                    </button>
-                </div>
-            </div>
-
             <!-- Conversation Thread Scroll Area -->
             <div id="threadScrollArea">
             <div id="threadVisualizerContainer" class="flex-1 min-h-0 overflow-y-auto p-4 space-y-3 notebook-ruled">
@@ -628,7 +676,7 @@
                 </div>
 
                 <!-- Main Reply Text Area -->
-                <textarea id="replyTextInput" rows="3" oninput="updateReplyCharCounter()" placeholder="답장 내용을 작성하세요 (종이 위에 쓰듯 편하게 입력하세요)" class="w-full bg-neutral-50 border border-neutral-300 rounded-md p-2.5 text-xs text-neutral-800 placeholder-neutral-400 focus:outline-none focus:border-neutral-500 transition resize-none leading-relaxed shadow-inner"></textarea>
+                <textarea id="replyTextInput" rows="5" oninput="updateReplyCharCounter()" placeholder="답장 내용을 작성하세요 (종이 위에 쓰듯 편하게 입력하세요)" class="w-full bg-neutral-50 border border-neutral-300 rounded-md p-2.5 text-xs text-neutral-800 placeholder-neutral-400 focus:outline-none focus:border-neutral-500 transition resize-none leading-relaxed shadow-inner"></textarea>
 
                 <!-- + 이어쓰기로 추가한 입력칸 -->
                 <div id="replyExtraParts" class="flex flex-col gap-2"></div>
@@ -678,6 +726,17 @@
                 </label>
                 <input type="range" id="fontSizeSlider" min="10" max="18" step="1" value="12" oninput="setFontPx(this.value)" class="font-slider w-full">
                 <div class="flex justify-between text-[10px] text-neutral-500 mt-1"><span>10</span><span>14</span><span>18</span></div>
+            </div>
+
+
+            <div class="border-t border-neutral-200 pt-3">
+                <label class="text-xs font-medium text-neutral-700 block mb-2">타래 본문 글꼴</label>
+                <div id="bodyFontOptions" class="grid grid-cols-3 gap-1.5">
+                    <button type="button" data-font="galmuri9" onclick="setBodyFont('galmuri9')" style="font-family:'Galmuri9',sans-serif !important" class="btn-paper rounded-md text-xs font-medium">갈무리9</button>
+                    <button type="button" data-font="galmuri11" onclick="setBodyFont('galmuri11')" style="font-family:'Galmuri11',sans-serif !important" class="btn-paper rounded-md text-xs font-medium">갈무리11</button>
+                    <button type="button" data-font="umdoteu" onclick="setBodyFont('umdoteu')" style="font-family:'Umdoteu','Galmuri11',sans-serif !important" class="btn-paper rounded-md text-xs font-medium">움돋으</button>
+                </div>
+                <p class="text-[11px] text-neutral-500 mt-1.5 leading-relaxed">멘션 타래에 보이는 본문에만 적용돼요.</p>
             </div>
 
             <div class="border-t border-neutral-200 pt-3">
@@ -804,6 +863,7 @@
             replyForm: { cw: '', showCw: false },
             fontSize: '14px',
             fontPx: null,
+            bodyFont: null,   // 'galmuri9' | 'galmuri11' | 'umdoteu' | null(기본)
             mobileView: 'list',   // 'list' | 'workspace'
             updatedAt: 0          // 동기화용 마지막 수정 시각
         };
@@ -847,6 +907,7 @@
             loadLocalState();
             loadMentionCache();
             applyFontSize();
+            applyBodyFont();
             lucide.createIcons();
 
             if (state.accounts.length === 0) {
@@ -902,6 +963,7 @@
                     state.drafts = parsed.drafts || {};
                     state.fontSize = parsed.fontSize || '14px';
                     state.fontPx = parsed.fontPx || null;
+                    state.bodyFont = parsed.bodyFont || null;
                     state.updatedAt = parsed.updatedAt || 0;
                     if (typeof parsed.onlyDesignated === 'boolean') {
                         state.filters.onlyDesignated = parsed.onlyDesignated;
@@ -926,6 +988,7 @@
                 drafts: state.drafts,
                 fontSize: state.fontSize,
                 fontPx: state.fontPx,
+                bodyFont: state.bodyFont,
                 threadGrouping: state.filters.threadGrouping,
                 onlyDesignated: state.filters.onlyDesignated
             };
@@ -1298,7 +1361,34 @@
             document.documentElement.style.setProperty('--fs-scale', String(px / 12));
         }
 
+        /* ---- 타래 본문 글꼴 (기기별 설정: 동기화하지 않음) ---- */
+        const BODY_FONTS = {
+            galmuri9:  "'Galmuri9', 'Galmuri11', 'Pretendard Variable', sans-serif",
+            galmuri11: "'Galmuri11', 'Galmuri9', 'Pretendard Variable', sans-serif",
+            umdoteu:   "'Umdoteu', 'Galmuri11', 'Pretendard Variable', sans-serif"
+        };
+        function setBodyFont(key) {
+            state.bodyFont = BODY_FONTS[key] ? key : null;
+            applyBodyFont();
+            saveLocalState(true);
+            updateBodyFontUI();
+        }
+        function applyBodyFont() {
+            const root = document.documentElement.style;
+            if (state.bodyFont && BODY_FONTS[state.bodyFont]) root.setProperty('--body-font', BODY_FONTS[state.bodyFont]);
+            else root.removeProperty('--body-font');
+        }
+        function updateBodyFontUI() {
+            const cur = state.bodyFont || (window.innerWidth < 768 ? 'galmuri9' : 'galmuri11');
+            document.querySelectorAll('#bodyFontOptions button').forEach(b => {
+                const on = b.dataset.font === cur;
+                b.classList.toggle('btn-paper-dark', on);
+                b.classList.toggle('btn-paper', !on);
+            });
+        }
+
         function updateFontSizeUI() {
+            updateBodyFontUI();
             const sl = document.getElementById('fontSizeSlider');
             const lb = document.getElementById('fontSizeValue');
             if (sl) sl.value = getFontPx();
@@ -2317,6 +2407,10 @@
             fetchThreadApi(noteId);
             renderFeed();
 
+            // 모바일: 타래 화면으로 들어갈 때 기록을 하나 쌓아 두면 뒤로가기 키가 알림 목록으로 돌아감
+            if (window.innerWidth < 768 && state.mobileView !== 'workspace') {
+                try { history.pushState({ mw: 'thread' }, ''); } catch (e) {}
+            }
             state.mobileView = 'workspace';
             updateResponsiveViews();
         }
@@ -2363,6 +2457,14 @@
         }
 
         window.addEventListener('resize', updateResponsiveViews);
+
+        // 뒤로가기 키: 타래 화면 → 알림 목록 (모바일)
+        window.addEventListener('popstate', () => {
+            if (window.innerWidth < 768 && state.mobileView === 'workspace') {
+                state.mobileView = 'list';
+                updateResponsiveViews();
+            }
+        });
 
         function isDesignatedUser(userObj) {
             if (!userObj) return false;
